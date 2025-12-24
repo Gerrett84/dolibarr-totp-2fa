@@ -91,6 +91,11 @@ class modTOTP2FA extends DolibarrModules
         // Cronjobs
         $this->cronjobs = array();
 
+        // Tabs - Add 2FA tab to user profile
+        $this->tabs = array(
+            'user:+2fa:TwoFactorAuth:totp2fa@totp2fa:$conf->totp2fa->enabled:/totp2fa/user_setup.php?id=__ID__'
+        );
+
         // Permissions
         $this->rights = array();
         $r = 0;
