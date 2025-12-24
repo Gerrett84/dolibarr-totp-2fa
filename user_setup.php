@@ -71,26 +71,33 @@ $result = $user2fa->fetch($object->id);
  */
 
 // Enable 2FA - Generate secret
-if ($action == 'enable_2fa' && !$user2fa->is_enabled && GETPOST('token', 'alpha') == $_SESSION['newtoken']) {
+if ($action == 'enable_2fa' && !$user2fa->is_enabled) {
+    dol_syslog("TOTP2FA: enable_2fa action triggered for user ".$object->id);
     if ($result <= 0) {
         // No existing settings, create new
+        dol_syslog("TOTP2FA: Creating new 2FA settings");
         $user2fa->fk_user = $object->id;
         $result = $user2fa->create($user);
+        dol_syslog("TOTP2FA: Create result: ".$result);
         if ($result > 0) {
             $action = 'setup'; // Show QR code
+            dol_syslog("TOTP2FA: Setting action to setup");
         } else {
-            setEventMessages($langs->trans("ErrorGeneratingSecret"), null, 'errors');
+            setEventMessages($langs->trans("ErrorGeneratingSecret").": ".$user2fa->error, null, 'errors');
         }
     } else {
         // Settings exist but disabled, regenerate secret
+        dol_syslog("TOTP2FA: Deleting and recreating 2FA settings");
         $user2fa->delete($user);
         $user2fa = new User2FA($db);
         $user2fa->fk_user = $object->id;
         $result = $user2fa->create($user);
+        dol_syslog("TOTP2FA: Create result: ".$result);
         if ($result > 0) {
             $action = 'setup';
+            dol_syslog("TOTP2FA: Setting action to setup");
         } else {
-            setEventMessages($langs->trans("ErrorGeneratingSecret"), null, 'errors');
+            setEventMessages($langs->trans("ErrorGeneratingSecret").": ".$user2fa->error, null, 'errors');
         }
     }
 }
@@ -118,7 +125,7 @@ if ($action == 'verify' && !empty($code)) {
 }
 
 // Disable 2FA
-if ($action == 'confirm_disable' && $confirm == 'yes' && GETPOST('token', 'alpha') == $_SESSION['newtoken']) {
+if ($action == 'confirm_disable' && $confirm == 'yes') {
     if ($user2fa->id > 0) {
         $result = $user2fa->delete($user);
         if ($result > 0) {
@@ -132,7 +139,7 @@ if ($action == 'confirm_disable' && $confirm == 'yes' && GETPOST('token', 'alpha
 }
 
 // Regenerate secret
-if ($action == 'confirm_regenerate' && $confirm == 'yes' && GETPOST('token', 'alpha') == $_SESSION['newtoken']) {
+if ($action == 'confirm_regenerate' && $confirm == 'yes') {
     if ($user2fa->id > 0) {
         $user2fa->delete($user);
         $user2fa = new User2FA($db);
@@ -210,7 +217,9 @@ if ($user2fa->is_enabled && $action != 'backup_codes') {
 } elseif ($action == 'setup') {
     // Show QR code for setup
     $secret = $user2fa->getPlainSecret();
-    $qrUrl = $user2fa->getQRCodeUrl($object->login, dol_getDefaultFormat());
+    global $mysoc;
+    $issuer = !empty($mysoc->name) ? $mysoc->name : 'Dolibarr';
+    $qrUrl = $user2fa->getQRCodeUrl($object->login, $issuer);
 
     print '<div class="center">';
     print '<h3>'.$langs->trans("SetupYour2FA").'</h3>';
