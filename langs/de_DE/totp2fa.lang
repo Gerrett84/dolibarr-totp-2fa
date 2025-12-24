@@ -1,0 +1,130 @@
+# Module
+Module500200Name=TOTP 2FA
+Module500200Desc=Zwei-Faktor-Authentifizierung mit TOTP (RFC 6238)
+
+# Permissions
+Permission500201=TOTP 2FA-Einstellungen verwalten
+
+# Menu
+TOTP2FA=TOTP 2FA
+
+# Module Configuration
+ModuleSetup=Moduleinrichtung
+TOTP2FASetup=TOTP 2FA Konfiguration
+TOTP2FADescription=Zwei-Faktor-Authentifizierung für erhöhte Sicherheit
+ModuleIsActive=Modul ist aktiv
+Users2FAEnabled=Benutzer mit 2FA
+TotalUsers=Benutzer gesamt
+
+# 2FA Settings
+TwoFactorAuthentication=Zwei-Faktor-Authentifizierung
+TwoFactorAuth=2FA
+Enable2FA=2FA aktivieren
+Disable2FA=2FA deaktivieren
+2FAEnabled=2FA aktiviert
+2FADisabled=2FA deaktiviert
+2FAStatus=2FA Status
+Enabled=Aktiviert
+Disabled=Deaktiviert
+
+# Setup Process
+SetupYour2FA=Richten Sie Ihre Zwei-Faktor-Authentifizierung ein
+ScanQRCode=QR-Code scannen
+ScanQRCodeWithAuthApp=Scannen Sie diesen QR-Code mit Ihrer Authenticator-App
+CannotScanQRCode=Können Sie den QR-Code nicht scannen?
+ManualEntry=Manuelle Eingabe
+Secret=Geheimnis
+EnterThisSecretInYourApp=Geben Sie dieses Geheimnis in Ihrer Authenticator-App ein
+VerifyAndEnable=Verifizieren und aktivieren
+
+# QR Code
+QRCode=QR-Code
+DisplayQRCode=QR-Code anzeigen
+HideQRCode=QR-Code ausblenden
+
+# Codes
+EnterVerificationCode=Verifizierungscode eingeben
+Enter6DigitCode=6-stelligen Code eingeben
+EnterCodeFromApp=Code aus Ihrer Authenticator-App eingeben
+VerificationCode=Verifizierungscode
+Code=Code
+Verify=Verifizieren
+VerifyCode=Code überprüfen
+
+# Backup Codes
+BackupCodes=Notfall-Codes
+BackupCodesGenerated=Notfall-Codes generiert
+DownloadBackupCodes=Notfall-Codes herunterladen
+SaveBackupCodes=Speichern Sie diese Codes an einem sicheren Ort
+BackupCodesInfo=Diese Codes können nur einmal verwendet werden. Bewahren Sie sie sicher auf.
+UseBackupCode=Notfall-Code verwenden
+BackupCodeUsed=Notfall-Code verwendet
+RemainingBackupCodes=Verbleibende Notfall-Codes
+
+# Actions
+RegenerateSecret=Geheimnis neu generieren
+RegenerateBackupCodes=Notfall-Codes neu generieren
+ConfirmRegenerate=Sind Sie sicher? Ihr aktuelles Geheimnis wird ungültig.
+SecretRegenerated=Geheimnis wurde neu generiert
+
+# Messages
+2FAEnabledSuccess=Zwei-Faktor-Authentifizierung erfolgreich aktiviert
+2FADisabledSuccess=Zwei-Faktor-Authentifizierung deaktiviert
+CodeVerifiedSuccess=Code erfolgreich verifiziert
+InvalidCode=Ungültiger Code
+CodeAlreadyUsed=Dieser Code wurde bereits verwendet
+TooManyAttempts=Zu viele Fehlversuche. Bitte warten Sie vor erneutem Versuch.
+PleaseEnterCode=Bitte geben Sie einen Code ein
+2FARequired=Zwei-Faktor-Authentifizierung erforderlich
+PleaseEnter2FACode=Bitte geben Sie Ihren 2FA-Code ein
+
+# Authenticator Apps
+AuthenticatorApp=Authenticator-App
+CompatibleApps=Kompatible Apps
+GoogleAuthenticator=Google Authenticator
+ApplePasswords=Apple Passwörter (iOS 15+)
+MicrosoftAuthenticator=Microsoft Authenticator
+Authy=Authy
+OtherTOTPApps=Andere TOTP-Apps (RFC 6238)
+
+# Security
+SecuritySettings=Sicherheitseinstellungen
+EnhancedSecurity=Erhöhte Sicherheit
+ProtectYourAccount=Schützen Sie Ihr Konto
+2FAExplanation=Zwei-Faktor-Authentifizierung fügt eine zusätzliche Sicherheitsebene zu Ihrem Konto hinzu. Nach der Anmeldung mit Ihrem Passwort müssen Sie einen 6-stelligen Code eingeben, der von Ihrer Authenticator-App generiert wird.
+WhyUse2FA=Warum 2FA verwenden?
+2FABenefit1=Schützt vor Passwortdiebstahl
+2FABenefit2=Verhindert unbefugten Zugriff
+2FABenefit3=Entspricht Sicherheitsstandards
+2FABenefit4=Einfach einzurichten und zu verwenden
+
+# Errors
+Error2FANotEnabled=2FA ist für diesen Benutzer nicht aktiviert
+Error2FAAlreadyEnabled=2FA ist bereits aktiviert
+ErrorGeneratingSecret=Fehler beim Generieren des Geheimnisses
+ErrorSavingSettings=Fehler beim Speichern der Einstellungen
+ErrorVerifyingCode=Fehler beim Überprüfen des Codes
+ErrorLoadingSettings=Fehler beim Laden der Einstellungen
+
+# Help
+2FAHelp=Hilfe zur Zwei-Faktor-Authentifizierung
+HowToSetup2FA=Wie richte ich 2FA ein?
+Step1=Schritt 1: Installieren Sie eine Authenticator-App
+Step2=Schritt 2: Scannen Sie den QR-Code
+Step3=Schritt 3: Geben Sie den 6-stelligen Code ein
+Step4=Schritt 4: Speichern Sie Ihre Notfall-Codes
+WhatIfLosePhone=Was passiert, wenn ich mein Telefon verliere?
+UsePrintedBackupCodes=Verwenden Sie einen Ihrer ausgedruckten Notfall-Codes
+ContactAdministrator=Kontaktieren Sie Ihren Administrator für Unterstützung
+
+# Time
+RemainingTime=Verbleibende Zeit
+CodeExpiresIn=Code läuft ab in
+Seconds=Sekunden
+
+# Admin
+ForceUserDisable2FA=2FA für Benutzer deaktivieren (Notfall)
+AdminCanDisable2FA=Als Administrator können Sie 2FA für Benutzer in Notfällen deaktivieren
+ConfirmDisable2FAForUser=2FA für diesen Benutzer wirklich deaktivieren?
+2FADisabledByAdmin=2FA wurde vom Administrator deaktiviert
+ViewUser2FAStatus=2FA-Status der Benutzer anzeigen
