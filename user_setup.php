@@ -71,7 +71,7 @@ $result = $user2fa->fetch($object->id);
  */
 
 // Enable 2FA - Generate secret
-if ($action == 'enable_2fa' && !$user2fa->is_enabled) {
+if ($action == 'enable_2fa' && !$user2fa->is_enabled && GETPOST('token', 'alpha') == $_SESSION['newtoken']) {
     if ($result <= 0) {
         // No existing settings, create new
         $user2fa->fk_user = $object->id;
@@ -118,7 +118,7 @@ if ($action == 'verify' && !empty($code)) {
 }
 
 // Disable 2FA
-if ($action == 'confirm_disable' && $confirm == 'yes') {
+if ($action == 'confirm_disable' && $confirm == 'yes' && GETPOST('token', 'alpha') == $_SESSION['newtoken']) {
     if ($user2fa->id > 0) {
         $result = $user2fa->delete($user);
         if ($result > 0) {
@@ -132,7 +132,7 @@ if ($action == 'confirm_disable' && $confirm == 'yes') {
 }
 
 // Regenerate secret
-if ($action == 'confirm_regenerate' && $confirm == 'yes') {
+if ($action == 'confirm_regenerate' && $confirm == 'yes' && GETPOST('token', 'alpha') == $_SESSION['newtoken']) {
     if ($user2fa->id > 0) {
         $user2fa->delete($user);
         $user2fa = new User2FA($db);
@@ -304,9 +304,12 @@ if ($user2fa->is_enabled && $action != 'backup_codes') {
 
     // Enable button
     print '<div class="tabsAction">';
-    print '<a class="butAction" href="'.$_SERVER["PHP_SELF"].'?action=enable_2fa&id='.$object->id.'">';
-    print $langs->trans("Enable2FA");
-    print '</a>';
+    print '<form method="POST" action="'.$_SERVER["PHP_SELF"].'" style="display: inline-block;">';
+    print '<input type="hidden" name="token" value="'.newToken().'">';
+    print '<input type="hidden" name="action" value="enable_2fa">';
+    print '<input type="hidden" name="id" value="'.$object->id.'">';
+    print '<input type="submit" class="butAction" value="'.$langs->trans("Enable2FA").'">';
+    print '</form>';
     print '</div>';
 }
 
