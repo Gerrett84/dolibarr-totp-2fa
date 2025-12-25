@@ -13,10 +13,6 @@
  * \brief      AJAX endpoint to check if user has 2FA enabled
  */
 
-// Send debug headers FIRST before any other output
-header('X-Debug-Endpoint: check_user_2fa.php');
-header('X-Debug-Time: ' . date('Y-m-d H:i:s'));
-
 // CRITICAL: Must allow access without being logged in!
 if (!defined('NOREQUIREUSER')) {
     define('NOREQUIREUSER', '1');
@@ -39,6 +35,11 @@ if (!defined('NOREQUIRESOC')) {
 if (!defined('NOCSRFCHECK')) {
     define('NOCSRFCHECK', '1'); // No CSRF check for this AJAX endpoint
 }
+
+// Set JSON header BEFORE loading main.inc.php
+header('Content-Type: application/json');
+header('X-Debug-Endpoint: check_user_2fa.php');
+header('X-Debug-Time: ' . date('Y-m-d H:i:s'));
 
 // Load Dolibarr environment
 $res = 0;
@@ -81,6 +82,6 @@ if (!empty($username)) {
     }
 }
 
-// Return JSON response
-header('Content-Type: application/json');
+// Return JSON response and exit immediately
 echo json_encode(array('has_2fa' => $has_2fa));
+exit;

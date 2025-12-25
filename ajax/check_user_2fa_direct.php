@@ -4,9 +4,6 @@
  * This is a diagnostic version to isolate the problem
  */
 
-// Ensure no output before headers
-ob_start();
-
 // Set JSON header immediately
 header('Content-Type: application/json');
 header('X-Debug-Direct: true');
@@ -83,6 +80,3 @@ try {
         'has_2fa' => false
     ));
 }
-
-// Clear any buffered output before our JSON
-ob_end_clean();
