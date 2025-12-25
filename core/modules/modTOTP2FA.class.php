@@ -52,7 +52,8 @@ class modTOTP2FA extends DolibarrModules
         $this->module_position = '90';
 
         // Module label (no space allowed)
-        $this->name = preg_replace('/^mod/i', '', get_class($this));
+        // IMPORTANT: Must be lowercase to match directory name for hook loading!
+        $this->name = strtolower(preg_replace('/^mod/i', '', get_class($this)));
 
         // Module description (shown in module setup)
         $this->description = "Two-Factor Authentication using TOTP (RFC 6238)";
