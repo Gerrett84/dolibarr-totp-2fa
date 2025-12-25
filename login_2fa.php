@@ -85,7 +85,8 @@ if ($action == 'verify' && !empty($code)) {
         // Verify backup code
         $isValid = $user2fa->verifyBackupCode($code);
         if ($isValid) {
-            // Login successful!
+            // Login successful! Mark as verified in this session
+            $_SESSION['totp2fa_verified'] = $user_id;
             unset($_SESSION['totp2fa_pending_login']);
             unset($_SESSION['totp2fa_user_id']);
 
@@ -103,7 +104,8 @@ if ($action == 'verify' && !empty($code)) {
         // Verify TOTP code
         $isValid = $user2fa->verifyCode($code);
         if ($isValid) {
-            // Login successful!
+            // Login successful! Mark as verified in this session
+            $_SESSION['totp2fa_verified'] = $user_id;
             unset($_SESSION['totp2fa_pending_login']);
             unset($_SESSION['totp2fa_user_id']);
 

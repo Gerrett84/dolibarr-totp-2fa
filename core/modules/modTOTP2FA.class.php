@@ -85,6 +85,15 @@ class modTOTP2FA extends DolibarrModules
         // Constants
         $this->const = array();
 
+        // Array to add module hooks
+        $this->module_parts = array(
+            'hooks' => array(
+                'main',
+                'login',
+                'afterlogin'
+            )
+        );
+
         // Boxes/Widgets
         $this->boxes = array();
 
