@@ -56,75 +56,6 @@ class ActionsTotp2fa
     }
 
     /**
-     * Execute action after login
-     * Called on every page load after successful login
-     *
-     * @param array         $parameters Parameters
-     * @param CommonObject  $object     Object
-     * @param string        $action     Action name
-     * @param HookManager   $hookmanager Hook manager
-     * @return int 0 if OK, <0 if KO
-     */
-    public function afterLogin($parameters, &$object, &$action, $hookmanager)
-    {
-        global $conf, $user, $langs;
-
-        // Skip if module not enabled
-        if (empty($conf->totp2fa->enabled)) {
-            return 0;
-        }
-
-        // Skip if already in 2FA verification process
-        if (!empty($_SESSION['totp2fa_pending_login'])) {
-            return 0;
-        }
-
-        // Skip if we're on the 2FA page itself
-        if (strpos($_SERVER['PHP_SELF'], 'login_2fa.php') !== false) {
-            return 0;
-        }
-
-        // Skip if we're on the login page
-        if (strpos($_SERVER['PHP_SELF'], 'index.php') !== false && empty($user->id)) {
-            return 0;
-        }
-
-        // Skip if user not logged in
-        if (empty($user->id)) {
-            return 0;
-        }
-
-        // Check if we already verified 2FA in this session
-        if (!empty($_SESSION['totp2fa_verified']) && $_SESSION['totp2fa_verified'] == $user->id) {
-            return 0;
-        }
-
-        // Check if user has 2FA enabled
-        $user2fa = new User2FA($this->db);
-        $result = $user2fa->fetch($user->id);
-
-        if ($result > 0 && $user2fa->is_enabled) {
-            // User has 2FA enabled but hasn't verified in this session
-            dol_syslog("TOTP2FA: User ".$user->id." has 2FA enabled, redirecting to verification");
-
-            $_SESSION['totp2fa_pending_login'] = 1;
-            $_SESSION['totp2fa_user_id'] = $user->id;
-
-            // Store intended URL
-            $urltogo = $_SERVER['REQUEST_URI'];
-            if (!empty($urltogo) && strpos($urltogo, 'login_2fa.php') === false) {
-                $_SESSION['totp2fa_urltogo'] = $urltogo;
-            }
-
-            // Redirect to 2FA verification
-            header('Location: '.dol_buildpath('/custom/totp2fa/login_2fa.php', 1));
-            exit;
-        }
-
-        return 0;
-    }
-
-    /**
      * Execute action on main page
      * This is called on almost every page
      *
@@ -136,7 +67,115 @@ class ActionsTotp2fa
      */
     public function main($parameters, &$object, &$action, $hookmanager)
     {
-        // Use the same logic as afterLogin
-        return $this->afterLogin($parameters, $object, $action, $hookmanager);
+        global $conf, $user;
+
+        // Skip if module not enabled
+        if (empty($conf->totp2fa->enabled)) {
+            return 0;
+        }
+
+        // Skip if already verified
+        if (!empty($_SESSION['totp2fa_verified']) && $_SESSION['totp2fa_verified'] == $user->id) {
+            return 0;
+        }
+
+        // Check if user has 2FA and redirect if needed
+        // This is now handled by the login page directly
+
+        return 0;
+    }
+
+    /**
+     * Add content to login page
+     *
+     * @param array         $parameters Parameters
+     * @param CommonObject  $object     Object
+     * @param string        $action     Action name
+     * @param HookManager   $hookmanager Hook manager
+     * @return int 0 if OK, <0 if KO
+     */
+    public function formLogin($parameters, &$object, &$action, $hookmanager)
+    {
+        global $conf;
+
+        if (empty($conf->totp2fa->enabled)) {
+            return 0;
+        }
+
+        // Include the login extension script
+        include dol_buildpath('/custom/totp2fa/login_extension.php', 0);
+
+        return 0;
+    }
+
+    /**
+     * Check 2FA code before login completes
+     * Called via loginfunction hook
+     *
+     * @param array         $parameters Parameters (contains usertotest, entitytotest)
+     * @param CommonObject  $object     Object
+     * @param string        $action     Action name
+     * @param HookManager   $hookmanager Hook manager
+     * @return int 0 if OK, -1 to block login
+     */
+    public function loginfunction($parameters, &$object, &$action, $hookmanager)
+    {
+        global $conf, $db, $langs;
+
+        if (empty($conf->totp2fa->enabled)) {
+            return 0;
+        }
+
+        $usertotest = isset($parameters['usertotest']) ? $parameters['usertotest'] : GETPOST('username', 'alpha');
+        $totp_code = GETPOST('totp_code', 'alpha');
+
+        if (empty($usertotest)) {
+            return 0;
+        }
+
+        // Get user ID
+        $sql = "SELECT u.rowid FROM ".MAIN_DB_PREFIX."user as u";
+        $sql .= " WHERE u.login = '".$db->escape($usertotest)."'";
+        $sql .= " AND u.entity IN (".getEntity('user').")";
+
+        $resql = $db->query($sql);
+        if (!$resql || $db->num_rows($resql) == 0) {
+            return 0;
+        }
+
+        $obj = $db->fetch_object($resql);
+        $user_id = $obj->rowid;
+
+        // Check if user has 2FA enabled
+        dol_include_once('/totp2fa/class/user2fa.class.php');
+
+        $user2fa = new User2FA($db);
+        $result = $user2fa->fetch($user_id);
+
+        if ($result > 0 && $user2fa->is_enabled) {
+            // User has 2FA enabled
+
+            if (empty($totp_code)) {
+                // No 2FA code provided - block login
+                $langs->load("totp2fa@totp2fa");
+                $this->errors[] = $langs->trans("PleaseEnterCode");
+                return -1; // Block login
+            }
+
+            // Verify the 2FA code
+            $isValid = $user2fa->verifyCode($totp_code);
+
+            if (!$isValid) {
+                // Invalid code - block login
+                $langs->load("totp2fa@totp2fa");
+                $this->errors[] = $user2fa->error ? $user2fa->error : $langs->trans("InvalidCode");
+                return -1; // Block login
+            }
+
+            // Code is valid - allow login and mark as verified
+            $_SESSION['totp2fa_verified'] = $user_id;
+        }
+
+        return 0; // Allow login
     }
 }
