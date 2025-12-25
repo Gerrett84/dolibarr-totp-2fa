@@ -13,6 +13,10 @@
  * \brief      AJAX endpoint to check if user has 2FA enabled
  */
 
+// CRITICAL: Must allow access without being logged in!
+if (!defined('NOREQUIREUSER')) {
+    define('NOREQUIREUSER', '1');
+}
 if (!defined('NOTOKENRENEWAL')) {
     define('NOTOKENRENEWAL', '1');
 }
@@ -27,6 +31,9 @@ if (!defined('NOREQUIREAJAX')) {
 }
 if (!defined('NOREQUIRESOC')) {
     define('NOREQUIRESOC', '1');
+}
+if (!defined('NOCSRFCHECK')) {
+    define('NOCSRFCHECK', '1'); // No CSRF check for this AJAX endpoint
 }
 
 // Load Dolibarr environment
