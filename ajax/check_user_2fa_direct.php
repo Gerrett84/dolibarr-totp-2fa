@@ -15,23 +15,15 @@ if (!file_exists($configfile)) {
     exit;
 }
 
-// Parse config file for database credentials
-$config_content = file_get_contents($configfile);
-if (preg_match('/\$dolibarr_main_db_host\s*=\s*[\'"]([^\'"]+)[\'"]/', $config_content, $matches)) {
-    $db_host = $matches[1];
-}
-if (preg_match('/\$dolibarr_main_db_name\s*=\s*[\'"]([^\'"]+)[\'"]/', $config_content, $matches)) {
-    $db_name = $matches[1];
-}
-if (preg_match('/\$dolibarr_main_db_user\s*=\s*[\'"]([^\'"]+)[\'"]/', $config_content, $matches)) {
-    $db_user = $matches[1];
-}
-if (preg_match('/\$dolibarr_main_db_pass\s*=\s*[\'"]([^\'"]+)[\'"]/', $config_content, $matches)) {
-    $db_pass = $matches[1];
-}
-if (preg_match('/\$dolibarr_main_db_prefix\s*=\s*[\'"]([^\'"]+)[\'"]/', $config_content, $matches)) {
-    $db_prefix = $matches[1];
-}
+// Include config file to get database credentials
+require_once $configfile;
+
+// Get DB credentials from config
+$db_host = $dolibarr_main_db_host;
+$db_name = $dolibarr_main_db_name;
+$db_user = $dolibarr_main_db_user;
+$db_pass = $dolibarr_main_db_pass;
+$db_prefix = $dolibarr_main_db_prefix;
 
 // Get username from POST/GET
 $username = isset($_POST['username']) ? $_POST['username'] : (isset($_GET['username']) ? $_GET['username'] : '');
