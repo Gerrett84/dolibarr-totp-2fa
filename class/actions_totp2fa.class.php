@@ -8,9 +8,9 @@
  */
 
 /**
- * \file       core/hooks/totp2fa.class.php
+ * \file       class/actions_totp2fa.class.php
  * \ingroup    totp2fa
- * \brief      Hook file for TOTP 2FA
+ * \brief      Hook actions file for TOTP 2FA
  */
 
 dol_include_once('/totp2fa/class/user2fa.class.php');
