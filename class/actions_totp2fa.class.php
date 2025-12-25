@@ -87,7 +87,7 @@ class ActionsTotp2fa
 
     /**
      * Add content to login page
-     * Hook: getLoginPageExtraOptions
+     * Hook: getLoginPageExtraContent (called AFTER </html> tag)
      *
      * @param array         $parameters Parameters
      * @param CommonObject  $object     Object
@@ -95,13 +95,13 @@ class ActionsTotp2fa
      * @param HookManager   $hookmanager Hook manager
      * @return int 0 if OK, <0 if KO
      */
-    public function getLoginPageExtraOptions($parameters, &$object, &$action, $hookmanager)
+    public function getLoginPageExtraContent($parameters, &$object, &$action, $hookmanager)
     {
         global $conf;
 
         // SIMPLE TEST: Just output a comment to verify hook is executing
-        $this->resPrint = "<!-- TOTP2FA HOOK EXECUTED: getLoginPageExtraOptions -->\n";
-        $this->resPrint .= "<div style='position:fixed;top:0;left:0;background:red;color:white;padding:10px;z-index:99999;'>TOTP2FA HOOK ACTIVE</div>\n";
+        $this->resPrint = "\n<!-- TOTP2FA HOOK EXECUTED: getLoginPageExtraContent -->\n";
+        $this->resPrint .= "<div style='position:fixed;top:0;left:0;background:red;color:white;padding:10px;z-index:99999;'>TOTP2FA HOOK ACTIVE - getLoginPageExtraContent</div>\n";
 
         // Uncomment this later when we verify the hook works:
         /*
