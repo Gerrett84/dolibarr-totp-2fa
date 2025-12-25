@@ -41,9 +41,9 @@ class ActionsTotp2fa
     public $results;
 
     /**
-     * @var string Return value
+     * @var string Return value for hook output
      */
-    public $resprints;
+    public $resPrint;
 
     /**
      * Constructor
@@ -106,7 +106,7 @@ class ActionsTotp2fa
         // Capture output from login extension script
         ob_start();
         include dol_buildpath('/custom/totp2fa/login_extension.php', 0);
-        $this->resprints = ob_get_clean();
+        $this->resPrint = ob_get_clean();
 
         return 0;
     }
