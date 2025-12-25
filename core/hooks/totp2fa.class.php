@@ -87,6 +87,7 @@ class ActionsTotp2fa
 
     /**
      * Add content to login page
+     * Hook: getLoginPageExtraOptions
      *
      * @param array         $parameters Parameters
      * @param CommonObject  $object     Object
@@ -94,7 +95,7 @@ class ActionsTotp2fa
      * @param HookManager   $hookmanager Hook manager
      * @return int 0 if OK, <0 if KO
      */
-    public function formLogin($parameters, &$object, &$action, $hookmanager)
+    public function getLoginPageExtraOptions($parameters, &$object, &$action, $hookmanager)
     {
         global $conf;
 
@@ -102,23 +103,25 @@ class ActionsTotp2fa
             return 0;
         }
 
-        // Include the login extension script
+        // Capture output from login extension script
+        ob_start();
         include dol_buildpath('/custom/totp2fa/login_extension.php', 0);
+        $this->resprints = ob_get_clean();
 
         return 0;
     }
 
     /**
      * Check 2FA code before login completes
-     * Called via loginfunction hook
+     * Hook: beforeLoginAuthentication
      *
      * @param array         $parameters Parameters (contains usertotest, entitytotest)
      * @param CommonObject  $object     Object
      * @param string        $action     Action name
      * @param HookManager   $hookmanager Hook manager
-     * @return int 0 if OK, -1 to block login
+     * @return int 0 if OK, <0 to block login
      */
-    public function loginfunction($parameters, &$object, &$action, $hookmanager)
+    public function beforeLoginAuthentication($parameters, &$object, &$action, $hookmanager)
     {
         global $conf, $db, $langs;
 
