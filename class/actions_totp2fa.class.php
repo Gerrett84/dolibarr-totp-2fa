@@ -41,9 +41,9 @@ class ActionsTotp2fa
     public $results;
 
     /**
-     * @var string Return value for hook output
+     * @var string Return value for hook output (used by HookManager)
      */
-    public $resPrint;
+    public $resprints;
 
     /**
      * Constructor
@@ -100,8 +100,8 @@ class ActionsTotp2fa
         global $conf;
 
         // SIMPLE TEST: Just output a comment to verify hook is executing
-        $this->resPrint = "\n<!-- TOTP2FA HOOK EXECUTED: getLoginPageExtraContent -->\n";
-        $this->resPrint .= "<div style='position:fixed;top:0;left:0;background:red;color:white;padding:10px;z-index:99999;'>TOTP2FA HOOK ACTIVE - getLoginPageExtraContent</div>\n";
+        $this->resprints = "\n<!-- TOTP2FA HOOK EXECUTED: getLoginPageExtraContent -->\n";
+        $this->resprints .= "<div style='position:fixed;top:0;left:0;background:red;color:white;padding:10px;z-index:99999;'>TOTP2FA HOOK ACTIVE - getLoginPageExtraContent</div>\n";
 
         // Uncomment this later when we verify the hook works:
         /*
@@ -112,7 +112,7 @@ class ActionsTotp2fa
         // Capture output from login extension script
         ob_start();
         include dol_buildpath('/custom/totp2fa/login_extension.php', 0);
-        $this->resPrint = ob_get_clean();
+        $this->resprints = ob_get_clean();
         */
 
         return 0;
