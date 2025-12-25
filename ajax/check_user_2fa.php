@@ -36,11 +36,6 @@ if (!defined('NOCSRFCHECK')) {
     define('NOCSRFCHECK', '1'); // No CSRF check for this AJAX endpoint
 }
 
-// Set JSON header BEFORE loading main.inc.php
-header('Content-Type: application/json');
-header('X-Debug-Endpoint: check_user_2fa.php');
-header('X-Debug-Time: ' . date('Y-m-d H:i:s'));
-
 // Load Dolibarr environment
 $res = 0;
 if (!$res && file_exists("../../main.inc.php")) {
@@ -53,8 +48,13 @@ if (!$res && file_exists("../../../../main.inc.php")) {
     $res = include "../../../../main.inc.php";
 }
 if (!$res) {
-    die("Include of main fails");
+    header('Content-Type: application/json');
+    echo json_encode(array('error' => 'Include of main fails', 'has_2fa' => false));
+    exit;
 }
+
+// Set JSON header immediately after main.inc.php
+header('Content-Type: application/json');
 
 dol_include_once('/totp2fa/class/user2fa.class.php');
 

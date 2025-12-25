@@ -101,9 +101,8 @@ jQuery(document).ready(function() {
         console.log('TOTP 2FA: Making AJAX request for username: ' + username);
 
         // Make AJAX call to check if user has 2FA
-        // Using direct DB version to bypass main.inc.php issues
         jQuery.ajax({
-            url: '/custom/totp2fa/ajax/check_user_2fa_direct.php',
+            url: '/custom/totp2fa/ajax/check_user_2fa.php',
             type: 'POST',
             data: {
                 username: username
