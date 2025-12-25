@@ -89,7 +89,8 @@ class modTOTP2FA extends DolibarrModules
         $this->module_parts = array(
             'hooks' => array(
                 'main',
-                'login'
+                'mainloginpage',  // For getLoginPageExtraOptions hook
+                'login'           // For beforeLoginAuthentication hook
             )
         );
 
