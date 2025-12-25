@@ -57,19 +57,39 @@ if (!empty($username)) {
 
 // JavaScript to add 2FA field dynamically
 ?>
+<!-- ======================================== -->
+<!-- TOTP 2FA LOGIN EXTENSION LOADED         -->
+<!-- Module enabled: <?php echo $conf->totp2fa->enabled ? 'YES' : 'NO'; ?> -->
+<!-- ======================================== -->
+<div id="totp2fa_debug" style="position: fixed; top: 10px; right: 10px; background: #ff9800; color: white; padding: 5px 10px; border-radius: 3px; font-size: 11px; z-index: 9999;">
+    TOTP 2FA Module Active - Check Console (F12)
+</div>
 <script type="text/javascript">
+console.log('TOTP 2FA: Script loading...');
+
+if (typeof jQuery === 'undefined') {
+    console.error('TOTP 2FA: jQuery not found!');
+} else {
+    console.log('TOTP 2FA: jQuery found, version: ' + jQuery.fn.jquery);
+}
+
 jQuery(document).ready(function() {
+    console.log('TOTP 2FA: Document ready');
+
     // Check if we need to show 2FA field based on username
     var username = jQuery('input[name="username"]').val();
+    console.log('TOTP 2FA: Current username value: "' + username + '"');
 
     if (username && username.length > 0) {
         // Username is already filled, check if user has 2FA
+        console.log('TOTP 2FA: Username found, checking 2FA status...');
         checkUserHas2FA(username);
     }
 
     // Monitor username field changes
     jQuery('input[name="username"]').on('blur change', function() {
         var username = jQuery(this).val();
+        console.log('TOTP 2FA: Username field changed to: "' + username + '"');
         if (username && username.length > 0) {
             checkUserHas2FA(username);
         } else {
@@ -78,6 +98,8 @@ jQuery(document).ready(function() {
     });
 
     function checkUserHas2FA(username) {
+        console.log('TOTP 2FA: Making AJAX request for username: ' + username);
+
         // Make AJAX call to check if user has 2FA
         jQuery.ajax({
             url: '<?php echo dol_buildpath('/custom/totp2fa/ajax/check_user_2fa.php', 1); ?>',
@@ -87,24 +109,41 @@ jQuery(document).ready(function() {
                 token: '<?php echo newToken(); ?>'
             },
             success: function(response) {
-                var data = JSON.parse(response);
-                if (data.has_2fa) {
-                    show2FAField();
-                } else {
-                    hide2FAField();
+                console.log('TOTP 2FA: AJAX response received:', response);
+                try {
+                    var data = JSON.parse(response);
+                    console.log('TOTP 2FA: Parsed data:', data);
+                    if (data.has_2fa) {
+                        console.log('TOTP 2FA: User has 2FA, showing field');
+                        show2FAField();
+                    } else {
+                        console.log('TOTP 2FA: User does not have 2FA, hiding field');
+                        hide2FAField();
+                    }
+                } catch (e) {
+                    console.error('TOTP 2FA: Error parsing JSON:', e);
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error('TOTP 2FA: AJAX error:', status, error);
+                console.error('TOTP 2FA: Response:', xhr.responseText);
             }
         });
     }
 
     function show2FAField() {
+        console.log('TOTP 2FA: show2FAField() called');
+
         if (jQuery('#totp2fa_field').length > 0) {
+            console.log('TOTP 2FA: Field already exists, showing it');
             jQuery('#totp2fa_field').show();
             return;
         }
 
         // Create 2FA field after password field
         var passwordRow = jQuery('input[name="password"]').closest('.trinline');
+        console.log('TOTP 2FA: Password row found:', passwordRow.length);
+
         if (passwordRow.length > 0) {
             var html = '<div class="tagtable centpercent" id="totp2fa_field" style="margin-top: 10px;">';
             html += '<div class="trinline">';
@@ -127,12 +166,17 @@ jQuery(document).ready(function() {
             html += '</div>';
 
             passwordRow.after(html);
+            console.log('TOTP 2FA: Field HTML inserted');
+        } else {
+            console.error('TOTP 2FA: Password row not found! Cannot add 2FA field.');
         }
     }
 
     function hide2FAField() {
+        console.log('TOTP 2FA: hide2FAField() called');
         jQuery('#totp2fa_field').hide();
     }
 });
 </script>
+<!-- TOTP 2FA Debug: Script end -->
 <?php
