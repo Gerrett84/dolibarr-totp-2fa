@@ -99,21 +99,15 @@ class ActionsTotp2fa
     {
         global $conf;
 
-        // SIMPLE TEST: Just output a comment to verify hook is executing
-        $this->resprints = "\n<!-- TOTP2FA HOOK EXECUTED: getLoginPageExtraContent -->\n";
-        $this->resprints .= "<div style='position:fixed;top:0;left:0;background:red;color:white;padding:10px;z-index:99999;'>TOTP2FA HOOK ACTIVE - getLoginPageExtraContent</div>\n";
-
-        // Uncomment this later when we verify the hook works:
-        /*
+        // Only run if module is enabled
         if (empty($conf->totp2fa->enabled)) {
             return 0;
         }
 
-        // Capture output from login extension script
+        // Capture output from login extension script (JavaScript for 2FA field)
         ob_start();
         include dol_buildpath('/custom/totp2fa/login_extension.php', 0);
         $this->resprints = ob_get_clean();
-        */
 
         return 0;
     }
@@ -132,12 +126,7 @@ class ActionsTotp2fa
     {
         global $conf, $db, $langs;
 
-        // TEMPORARILY DISABLED - Allow login without 2FA check
-        // This hook is disabled until we get getLoginPageExtraOptions working
-        // Once the login page shows the 2FA field, we can re-enable this
-        return 0;
-
-        /* ORIGINAL CODE - DISABLED FOR NOW
+        // Only run if module is enabled
         if (empty($conf->totp2fa->enabled)) {
             return 0;
         }
@@ -193,6 +182,5 @@ class ActionsTotp2fa
         }
 
         return 0; // Allow login
-        */
     }
 }
