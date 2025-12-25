@@ -125,6 +125,12 @@ class ActionsTotp2fa
     {
         global $conf, $db, $langs;
 
+        // TEMPORARILY DISABLED - Allow login without 2FA check
+        // This hook is disabled until we get getLoginPageExtraOptions working
+        // Once the login page shows the 2FA field, we can re-enable this
+        return 0;
+
+        /* ORIGINAL CODE - DISABLED FOR NOW
         if (empty($conf->totp2fa->enabled)) {
             return 0;
         }
@@ -180,5 +186,6 @@ class ActionsTotp2fa
         }
 
         return 0; // Allow login
+        */
     }
 }
