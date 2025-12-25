@@ -99,6 +99,12 @@ class ActionsTotp2fa
     {
         global $conf;
 
+        // SIMPLE TEST: Just output a comment to verify hook is executing
+        $this->resPrint = "<!-- TOTP2FA HOOK EXECUTED: getLoginPageExtraOptions -->\n";
+        $this->resPrint .= "<div style='position:fixed;top:0;left:0;background:red;color:white;padding:10px;z-index:99999;'>TOTP2FA HOOK ACTIVE</div>\n";
+
+        // Uncomment this later when we verify the hook works:
+        /*
         if (empty($conf->totp2fa->enabled)) {
             return 0;
         }
@@ -107,6 +113,7 @@ class ActionsTotp2fa
         ob_start();
         include dol_buildpath('/custom/totp2fa/login_extension.php', 0);
         $this->resPrint = ob_get_clean();
+        */
 
         return 0;
     }
