@@ -536,17 +536,31 @@ class User2FA extends CommonObject
             return false;
         }
 
-        // Prepare email
+        // Get user name (fallback to login if name is empty)
+        $userName = trim($userObj->firstname . ' ' . $userObj->lastname);
+        if (empty($userName)) {
+            $userName = $userObj->login;
+        }
+
+        // Build email with proper encoding
         if ($type === 'enabled') {
-            $subject = $langs->trans("Email2FAEnabledSubject");
-            $body = sprintf($langs->trans("Email2FAEnabledBody"), $userObj->getFullName($langs));
+            $subject = "2FA wurde für Ihr Konto aktiviert";
+            $body = "Hallo " . $userName . ",\n\n";
+            $body .= "die Zwei-Faktor-Authentifizierung wurde soeben für Ihr Konto aktiviert.\n\n";
+            $body .= "Wenn Sie diese Änderung nicht vorgenommen haben, kontaktieren Sie bitte umgehend Ihren Administrator.\n\n";
+            $body .= "Mit freundlichen Grüßen";
         } else {
-            $subject = $langs->trans("Email2FADisabledSubject");
-            $body = sprintf($langs->trans("Email2FADisabledBody"), $userObj->getFullName($langs));
+            $subject = "2FA wurde für Ihr Konto deaktiviert";
+            $body = "Hallo " . $userName . ",\n\n";
+            $body .= "die Zwei-Faktor-Authentifizierung wurde für Ihr Konto deaktiviert.\n\n";
+            $body .= "Wenn Sie diese Änderung nicht vorgenommen haben, kontaktieren Sie bitte umgehend Ihren Administrator.\n\n";
+            $body .= "Mit freundlichen Grüßen";
         }
 
         // Add company signature
-        $body .= "\n\n".$conf->global->MAIN_INFO_SOCIETE_NOM;
+        if (!empty($conf->global->MAIN_INFO_SOCIETE_NOM)) {
+            $body .= "\n\n" . $conf->global->MAIN_INFO_SOCIETE_NOM;
+        }
 
         // Send email
         $from = !empty($conf->global->MAIN_MAIL_EMAIL_FROM) ? $conf->global->MAIN_MAIL_EMAIL_FROM : 'noreply@'.$_SERVER['SERVER_NAME'];
