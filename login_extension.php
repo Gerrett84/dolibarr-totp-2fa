@@ -40,7 +40,7 @@ jQuery(document).ready(function() {
         html += '<div class="tagtd nowraponall center valignmiddle tdinputlogin">';
         html += '<span class="fa fa-shield-alt"></span>';
         html += '<input type="text" id="totp_code" name="totp_code" ';
-        html += 'class="flat input-icon-security minwidth150" ';
+        html += 'class="flat input-icon-user minwidth150" ';
         html += 'placeholder="2FA Code" ';
         html += 'maxlength="10" autocomplete="off" tabindex="3" ';
         html += 'style="letter-spacing: 3px; text-align: center;">';

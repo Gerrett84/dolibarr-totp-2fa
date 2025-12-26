@@ -62,6 +62,7 @@ BackupCodeUsed=Notfall-Code verwendet
 RemainingBackupCodes=Verbleibende Notfall-Codes
 
 # Actions
+Continue=Weiter
 RegenerateSecret=Geheimnis neu generieren
 RegenerateBackupCodes=Notfall-Codes neu generieren
 ConfirmRegenerate=Sind Sie sicher? Ihr aktuelles Geheimnis wird ungültig.

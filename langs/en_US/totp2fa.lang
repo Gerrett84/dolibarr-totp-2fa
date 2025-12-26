@@ -62,6 +62,7 @@ BackupCodeUsed=Backup code used
 RemainingBackupCodes=Remaining backup codes
 
 # Actions
+Continue=Continue
 RegenerateSecret=Regenerate Secret
 RegenerateBackupCodes=Regenerate Backup Codes
 ConfirmRegenerate=Are you sure? Your current secret will become invalid.
