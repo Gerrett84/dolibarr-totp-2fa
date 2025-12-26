@@ -107,8 +107,23 @@ dol_include_once('/totp2fa/class/totp2fa_activity.class.php');
 
 if (class_exists('Totp2faActivity')) {
     $activity = new Totp2faActivity($db);
+
+    // Show time calculation
+    $now = dol_now();
+    $timeLimit = $now - (5 * 60);
+    echo "Current time (dol_now): " . dol_print_date($now, 'dayhour') . "\n";
+    echo "Time limit (5 min ago): " . dol_print_date($timeLimit, 'dayhour') . "\n";
+    echo "MySQL NOW(): ";
+    $resql = $db->query("SELECT NOW() as mysql_now");
+    $obj = $db->fetch_object($resql);
+    echo $obj->mysql_now . "\n\n";
+
     $count = $activity->countRecentFailedAttempts($user->id, 5);
     echo "Failed attempts for current user in last 5 minutes: $count\n";
+
+    // Also try with 60 minutes to verify function works
+    $count60 = $activity->countRecentFailedAttempts($user->id, 60);
+    echo "Failed attempts for current user in last 60 minutes: $count60\n";
 } else {
     echo "✗ Totp2faActivity class not found!\n";
 }

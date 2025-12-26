@@ -143,10 +143,13 @@ class Totp2faActivity
     {
         global $conf;
 
+        // Use Dolibarr's date functions for consistency
+        $timeLimit = dol_now() - ($minutes * 60);
+
         $sql = "SELECT COUNT(*) as cnt FROM ".MAIN_DB_PREFIX."totp2fa_activity_log";
         $sql .= " WHERE fk_user = ".((int) $user_id);
         $sql .= " AND action = 'login_failed'";
-        $sql .= " AND datec > DATE_SUB(NOW(), INTERVAL ".((int) $minutes)." MINUTE)";
+        $sql .= " AND datec > '".$this->db->idate($timeLimit)."'";
         $sql .= " AND entity = ".((int) $conf->entity);
 
         $resql = $this->db->query($sql);
