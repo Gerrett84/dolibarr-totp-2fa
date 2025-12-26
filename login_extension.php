@@ -36,11 +36,11 @@ jQuery(document).ready(function() {
     var passwordRow = jQuery('input[name="password"]').closest('.trinputlogin');
 
     if (passwordRow.length > 0) {
-        // Copy exact structure from Dolibarr login.tpl.php
+        // Copy exact structure from Dolibarr login.tpl.php with matching CSS
         var html = '<div class="trinputlogin">';
         html += '<div class="tagtd nowraponall center valignmiddle tdinputlogin">';
-        html += '<span class="fa fa-shield-alt"></span>';
-        html += '<input type="text" id="totp_code" maxlength="10" placeholder="2FA Code" name="totp_code" class="flat input-icon-user minwidth150" value="" tabindex="3" autocomplete="off">';
+        html += '<span class="fa fa-shield-alt" style="padding-left: 10px; width: 14px;"></span>';
+        html += '<input type="text" id="totp_code" maxlength="10" placeholder="2FA Code" name="totp_code" class="flat input-icon-user minwidth150" value="" tabindex="3" autocomplete="off" style="font-size: 1.1em;">';
         html += '</div>';
         html += '</div>';
 
