@@ -100,9 +100,8 @@ if ($action == 'verify' && !empty($code)) {
     if ($user2fa->id > 0) {
         $isValid = $user2fa->verifyCode($code);
         if ($isValid) {
-            // Enable 2FA
-            $user2fa->is_enabled = 1;
-            $user2fa->update($user);
+            // Enable 2FA (sends notification email)
+            $user2fa->enable();
 
             // Generate backup codes
             $backupCodes = $user2fa->generateBackupCodes(10);
@@ -120,6 +119,9 @@ if ($action == 'verify' && !empty($code)) {
 // Disable 2FA
 if ($action == 'confirm_disable' && $confirm == 'yes') {
     if ($user2fa->id > 0) {
+        // Disable first (sends notification email)
+        $user2fa->disable();
+        // Then delete
         $result = $user2fa->delete($user);
         if ($result > 0) {
             setEventMessages($langs->trans("2FADisabledSuccess"), null, 'mesgs');
@@ -139,6 +141,8 @@ if ($action == 'confirm_regenerate' && $confirm == 'yes') {
         $user2fa->fk_user = $object->id;
         $result = $user2fa->create($user);
         if ($result > 0) {
+            // Log secret regeneration
+            $user2fa->logSecretRegenerated();
             setEventMessages($langs->trans("SecretRegenerated"), null, 'mesgs');
             $action = 'setup';
         } else {

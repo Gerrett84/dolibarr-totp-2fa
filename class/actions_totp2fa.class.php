@@ -170,14 +170,22 @@ class ActionsTotp2fa
             // Verify the 2FA code
             $isValid = $user2fa->verifyCode($totp_code);
 
+            // If TOTP code is not valid, try backup code
+            if (!$isValid && strpos($totp_code, '-') !== false) {
+                $isValid = $user2fa->verifyBackupCode($totp_code);
+            }
+
             if (!$isValid) {
-                // Invalid code - block login
+                // Invalid code - log failed attempt and check for email notification
+                $user2fa->logLoginFailed();
+
                 $langs->load("totp2fa@totp2fa");
                 $this->errors[] = $user2fa->error ? $user2fa->error : $langs->trans("InvalidCode");
                 return -1; // Block login
             }
 
-            // Code is valid - allow login and mark as verified
+            // Code is valid - log success, allow login and mark as verified
+            $user2fa->logLoginSuccess();
             $_SESSION['totp2fa_verified'] = $user_id;
         }
 

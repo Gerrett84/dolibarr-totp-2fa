@@ -15,6 +15,7 @@
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/commonobject.class.php';
 dol_include_once('/totp2fa/class/totp.class.php');
+dol_include_once('/totp2fa/class/totp2fa_activity.class.php');
 
 /**
  * User2FA Class - Manages user 2FA settings
@@ -372,6 +373,9 @@ class User2FA extends CommonObject
             $sql .= " WHERE rowid = ".(int)$obj->rowid;
             $this->db->query($sql);
 
+            // Log backup code usage
+            $this->logBackupCodeUsed();
+
             return true;
         }
 
@@ -408,5 +412,214 @@ class User2FA extends CommonObject
         $encrypted = substr($data, $ivLength);
 
         return openssl_decrypt($encrypted, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
+    }
+
+    /**
+     * Enable 2FA and send notification
+     *
+     * @return int <0 if KO, >0 if OK
+     */
+    public function enable()
+    {
+        $this->is_enabled = 1;
+        $result = $this->update(null);
+
+        if ($result > 0) {
+            // Log activity
+            $activity = new Totp2faActivity($this->db);
+            $activity->log($this->fk_user, Totp2faActivity::ACTION_2FA_ENABLED);
+
+            // Send email notification
+            $this->sendNotificationEmail('enabled');
+        }
+
+        return $result;
+    }
+
+    /**
+     * Disable 2FA and send notification
+     *
+     * @return int <0 if KO, >0 if OK
+     */
+    public function disable()
+    {
+        $this->is_enabled = 0;
+        $result = $this->update(null);
+
+        if ($result > 0) {
+            // Log activity
+            $activity = new Totp2faActivity($this->db);
+            $activity->log($this->fk_user, Totp2faActivity::ACTION_2FA_DISABLED);
+
+            // Send email notification
+            $this->sendNotificationEmail('disabled');
+        }
+
+        return $result;
+    }
+
+    /**
+     * Log successful login
+     *
+     * @return void
+     */
+    public function logLoginSuccess()
+    {
+        $activity = new Totp2faActivity($this->db);
+        $activity->log($this->fk_user, Totp2faActivity::ACTION_LOGIN_SUCCESS);
+    }
+
+    /**
+     * Log failed login attempt and check for notifications
+     *
+     * @return void
+     */
+    public function logLoginFailed()
+    {
+        $activity = new Totp2faActivity($this->db);
+        $activity->log($this->fk_user, Totp2faActivity::ACTION_LOGIN_FAILED);
+
+        // Check if we need to send a warning email (3 failed attempts)
+        $recentFails = $activity->countRecentFailedAttempts($this->fk_user, 5);
+        if ($recentFails == 3) {
+            $this->sendFailedAttemptsEmail($recentFails);
+        }
+    }
+
+    /**
+     * Log backup code usage
+     *
+     * @return void
+     */
+    public function logBackupCodeUsed()
+    {
+        $activity = new Totp2faActivity($this->db);
+        $activity->log($this->fk_user, Totp2faActivity::ACTION_BACKUP_CODE_USED);
+    }
+
+    /**
+     * Log secret regeneration
+     *
+     * @return void
+     */
+    public function logSecretRegenerated()
+    {
+        $activity = new Totp2faActivity($this->db);
+        $activity->log($this->fk_user, Totp2faActivity::ACTION_SECRET_REGENERATED);
+    }
+
+    /**
+     * Send notification email for 2FA status change
+     *
+     * @param string $type 'enabled' or 'disabled'
+     * @return bool True if sent
+     */
+    private function sendNotificationEmail($type)
+    {
+        global $conf, $langs;
+
+        require_once DOL_DOCUMENT_ROOT.'/core/class/CMailFile.class.php';
+        require_once DOL_DOCUMENT_ROOT.'/user/class/user.class.php';
+
+        $langs->load("totp2fa@totp2fa");
+
+        // Get user info
+        $userObj = new User($this->db);
+        $userObj->fetch($this->fk_user);
+
+        if (empty($userObj->email)) {
+            return false;
+        }
+
+        // Prepare email
+        if ($type === 'enabled') {
+            $subject = $langs->trans("Email2FAEnabledSubject");
+            $body = sprintf($langs->trans("Email2FAEnabledBody"), $userObj->getFullName($langs));
+        } else {
+            $subject = $langs->trans("Email2FADisabledSubject");
+            $body = sprintf($langs->trans("Email2FADisabledBody"), $userObj->getFullName($langs));
+        }
+
+        // Add company signature
+        $body .= "\n\n".$conf->global->MAIN_INFO_SOCIETE_NOM;
+
+        // Send email
+        $from = !empty($conf->global->MAIN_MAIL_EMAIL_FROM) ? $conf->global->MAIN_MAIL_EMAIL_FROM : 'noreply@'.$_SERVER['SERVER_NAME'];
+
+        $mail = new CMailFile(
+            $subject,
+            $userObj->email,
+            $from,
+            $body,
+            array(),
+            array(),
+            array(),
+            '',
+            '',
+            0,
+            0
+        );
+
+        return $mail->sendfile();
+    }
+
+    /**
+     * Send warning email for failed login attempts
+     *
+     * @param int $attempts Number of failed attempts
+     * @return bool True if sent
+     */
+    private function sendFailedAttemptsEmail($attempts)
+    {
+        global $conf, $langs;
+
+        require_once DOL_DOCUMENT_ROOT.'/core/class/CMailFile.class.php';
+        require_once DOL_DOCUMENT_ROOT.'/user/class/user.class.php';
+
+        $langs->load("totp2fa@totp2fa");
+
+        // Get user info
+        $userObj = new User($this->db);
+        $userObj->fetch($this->fk_user);
+
+        if (empty($userObj->email)) {
+            return false;
+        }
+
+        // Get IP and time
+        $ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'Unknown';
+        $time = dol_print_date(dol_now(), 'dayhour');
+
+        // Prepare email
+        $subject = $langs->trans("Email2FAFailedAttemptsSubject");
+        $body = sprintf(
+            $langs->trans("Email2FAFailedAttemptsBody"),
+            $userObj->getFullName($langs),
+            $attempts,
+            $ip,
+            $time
+        );
+
+        // Add company signature
+        $body .= "\n\n".$conf->global->MAIN_INFO_SOCIETE_NOM;
+
+        // Send email
+        $from = !empty($conf->global->MAIN_MAIL_EMAIL_FROM) ? $conf->global->MAIN_MAIL_EMAIL_FROM : 'noreply@'.$_SERVER['SERVER_NAME'];
+
+        $mail = new CMailFile(
+            $subject,
+            $userObj->email,
+            $from,
+            $body,
+            array(),
+            array(),
+            array(),
+            '',
+            '',
+            0,
+            0
+        );
+
+        return $mail->sendfile();
     }
 }

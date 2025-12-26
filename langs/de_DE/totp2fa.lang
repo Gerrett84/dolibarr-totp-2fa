@@ -129,3 +129,24 @@ AdminCanDisable2FA=Als Administrator können Sie 2FA für Benutzer in Notfällen
 ConfirmDisable2FAForUser=2FA für diesen Benutzer wirklich deaktivieren?
 2FADisabledByAdmin=2FA wurde vom Administrator deaktiviert
 ViewUser2FAStatus=2FA-Status der Benutzer anzeigen
+
+# Email Notifications
+Email2FAEnabled=Zwei-Faktor-Authentifizierung aktiviert
+Email2FAEnabledSubject=2FA wurde für Ihr Konto aktiviert
+Email2FAEnabledBody=Hallo %s,\n\ndie Zwei-Faktor-Authentifizierung wurde soeben für Ihr Konto aktiviert.\n\nWenn Sie diese Änderung nicht vorgenommen haben, kontaktieren Sie bitte umgehend Ihren Administrator.\n\nMit freundlichen Grüßen
+Email2FADisabled=Zwei-Faktor-Authentifizierung deaktiviert
+Email2FADisabledSubject=2FA wurde für Ihr Konto deaktiviert
+Email2FADisabledBody=Hallo %s,\n\ndie Zwei-Faktor-Authentifizierung wurde für Ihr Konto deaktiviert.\n\nWenn Sie diese Änderung nicht vorgenommen haben, kontaktieren Sie bitte umgehend Ihren Administrator.\n\nMit freundlichen Grüßen
+Email2FAFailedAttempts=Mehrere fehlgeschlagene 2FA-Versuche
+Email2FAFailedAttemptsSubject=Sicherheitswarnung: Fehlgeschlagene 2FA-Versuche
+Email2FAFailedAttemptsBody=Hallo %s,\n\nes wurden %d fehlgeschlagene Versuche registriert, sich mit Ihrem Konto anzumelden.\n\nIP-Adresse: %s\nZeitpunkt: %s\n\nWenn Sie diese Anmeldeversuche nicht unternommen haben, ändern Sie bitte umgehend Ihr Passwort.\n\nMit freundlichen Grüßen
+
+# Activity Log
+ActivityLog=Aktivitätsprotokoll
+Activity2FAEnabled=2FA aktiviert
+Activity2FADisabled=2FA deaktiviert
+Activity2FALoginSuccess=Erfolgreicher 2FA-Login
+Activity2FALoginFailed=Fehlgeschlagener 2FA-Login
+ActivityBackupCodeUsed=Notfall-Code verwendet
+ActivitySecretRegenerated=Geheimnis neu generiert
+NoActivityLog=Keine Aktivitäten protokolliert

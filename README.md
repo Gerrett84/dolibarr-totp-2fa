@@ -83,7 +83,13 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.0 (Current Release) ✅
+### v1.1 (Current Release) ✅
+- [x] Email notifications (2FA enabled/disabled, 3 failed attempts warning)
+- [x] Activity log for all 2FA events
+- [x] Admin can disable 2FA for users (emergency)
+- [x] Backup codes can be used at login
+
+### v1.0 ✅
 - [x] Basic TOTP implementation (RFC 6238)
 - [x] QR code generation for easy setup
 - [x] User profile integration (tab in user settings)
@@ -93,13 +99,6 @@ chmod -R 755 totp2fa
 - [x] German and English translations
 - [x] AES-256 encryption for stored secrets
 - [x] Rate limiting (5 attempts/minute)
-
-### v1.1 (Future)
-- [ ] 2FA enforcement by user group
-- [ ] Trusted devices (30-day bypass)
-- [ ] Email notifications on 2FA changes
-- [ ] Admin bypass codes
-- [ ] Activity log for 2FA events
 
 -----
 
@@ -167,6 +166,6 @@ GPL v3 or higher - Same as Dolibarr
 
 -----
 
-**Current Version:** 1.0.0
+**Current Version:** 1.1.0
 **Status:** Stable
 **Compatibility:** Dolibarr 22.0+

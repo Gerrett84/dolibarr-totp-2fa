@@ -129,3 +129,24 @@ AdminCanDisable2FA=As an administrator, you can disable 2FA for users in emergen
 ConfirmDisable2FAForUser=Really disable 2FA for this user?
 2FADisabledByAdmin=2FA has been disabled by administrator
 ViewUser2FAStatus=View users' 2FA status
+
+# Email Notifications
+Email2FAEnabled=Two-Factor Authentication enabled
+Email2FAEnabledSubject=2FA has been enabled for your account
+Email2FAEnabledBody=Hello %s,\n\nTwo-Factor Authentication has just been enabled for your account.\n\nIf you did not make this change, please contact your administrator immediately.\n\nBest regards
+Email2FADisabled=Two-Factor Authentication disabled
+Email2FADisabledSubject=2FA has been disabled for your account
+Email2FADisabledBody=Hello %s,\n\nTwo-Factor Authentication has been disabled for your account.\n\nIf you did not make this change, please contact your administrator immediately.\n\nBest regards
+Email2FAFailedAttempts=Multiple failed 2FA attempts
+Email2FAFailedAttemptsSubject=Security Warning: Failed 2FA attempts
+Email2FAFailedAttemptsBody=Hello %s,\n\n%d failed attempts to login to your account have been detected.\n\nIP Address: %s\nTime: %s\n\nIf you did not make these login attempts, please change your password immediately.\n\nBest regards
+
+# Activity Log
+ActivityLog=Activity Log
+Activity2FAEnabled=2FA enabled
+Activity2FADisabled=2FA disabled
+Activity2FALoginSuccess=Successful 2FA login
+Activity2FALoginFailed=Failed 2FA login
+ActivityBackupCodeUsed=Backup code used
+ActivitySecretRegenerated=Secret regenerated
+NoActivityLog=No activities logged
