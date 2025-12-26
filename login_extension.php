@@ -38,12 +38,12 @@ jQuery(document).ready(function() {
     if (passwordRow.length > 0) {
         var html = '<div class="trinputlogin" id="totp2fa_row">';
         html += '<div class="tagtd nowraponall center valignmiddle tdinputlogin">';
-        html += '<span class="fa fa-shield-alt"></span>';
+        html += '<span class="fa fa-shield-alt paddingright"></span>';
         html += '<input type="text" id="totp_code" name="totp_code" ';
-        html += 'class="flat input-icon-user minwidth150" ';
+        html += 'class="flat input-icon-password minwidth150" ';
         html += 'placeholder="2FA Code" ';
         html += 'maxlength="10" autocomplete="off" tabindex="3" ';
-        html += 'style="letter-spacing: 3px; text-align: center;">';
+        html += 'style="letter-spacing: 2px;">';
         html += '</div>';
         html += '</div>';
 
