@@ -83,14 +83,16 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.0 (Initial Release)
+### v1.0 (Current Release) ✅
 - [x] Basic TOTP implementation (RFC 6238)
-- [ ] QR code generation for easy setup
-- [ ] User profile integration
-- [ ] Login flow integration
-- [ ] Backup codes (10 single-use codes)
-- [ ] Admin configuration panel
-- [ ] German and English translations
+- [x] QR code generation for easy setup
+- [x] User profile integration (tab in user settings)
+- [x] Login page integration (2FA field on main login)
+- [x] Backup codes (10 single-use codes)
+- [x] Admin configuration panel with statistics
+- [x] German and English translations
+- [x] AES-256 encryption for stored secrets
+- [x] Rate limiting (5 attempts/minute)
 
 ### v1.1 (Future)
 - [ ] 2FA enforcement by user group
@@ -165,6 +167,6 @@ GPL v3 or higher - Same as Dolibarr
 
 -----
 
-**Current Version:** 0.1.0-dev
-**Status:** In Development
+**Current Version:** 1.0.0
+**Status:** Stable
 **Compatibility:** Dolibarr 22.0+
