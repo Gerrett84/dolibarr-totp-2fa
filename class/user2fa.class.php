@@ -479,10 +479,15 @@ class User2FA extends CommonObject
         $activity = new Totp2faActivity($this->db);
         $activity->log($this->fk_user, Totp2faActivity::ACTION_LOGIN_FAILED);
 
-        // Check if we need to send a warning email (3 failed attempts)
+        // Check if we need to send a warning email (3 or more failed attempts in last 5 minutes)
+        // Only send once per 5 minute window (on exactly 3rd attempt)
         $recentFails = $activity->countRecentFailedAttempts($this->fk_user, 5);
         if ($recentFails == 3) {
-            $this->sendFailedAttemptsEmail($recentFails);
+            $result = $this->sendFailedAttemptsEmail($recentFails);
+            // Log email send attempt for debugging
+            if (!$result) {
+                $activity->log($this->fk_user, 'email_failed', 'Failed to send warning email');
+            }
         }
     }
 

@@ -150,3 +150,6 @@ Activity2FALoginFailed=Failed 2FA login
 ActivityBackupCodeUsed=Backup code used
 ActivitySecretRegenerated=Secret regenerated
 NoActivityLog=No activities logged
+Filters=Filters
+IPAddress=IP Address
+Details=Details

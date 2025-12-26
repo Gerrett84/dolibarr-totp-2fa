@@ -86,7 +86,12 @@ $head[$h][1] = $langs->trans('Settings');
 $head[$h][2] = 'settings';
 $h++;
 
-print dol_get_fiche_head($head, 'settings', '', -1, '');
+$head[$h][0] = dol_buildpath('/totp2fa/admin/activity_log.php', 1);
+$head[$h][1] = $langs->trans('ActivityLog');
+$head[$h][2] = 'activitylog';
+$h++;
+
+print dol_get_fiche_head($head, 'settings', '', -1, 'fa-shield-alt');
 
 // Get statistics
 $sql = "SELECT COUNT(*) as total FROM ".MAIN_DB_PREFIX."user WHERE entity IN (".getEntity('user').")";

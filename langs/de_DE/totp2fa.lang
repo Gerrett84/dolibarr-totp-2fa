@@ -150,3 +150,6 @@ Activity2FALoginFailed=Fehlgeschlagener 2FA-Login
 ActivityBackupCodeUsed=Notfall-Code verwendet
 ActivitySecretRegenerated=Geheimnis neu generiert
 NoActivityLog=Keine Aktivitäten protokolliert
+Filters=Filter
+IPAddress=IP-Adresse
+Details=Details

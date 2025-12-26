@@ -70,7 +70,8 @@ class modTOTP2FA extends DolibarrModules
         $this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 
         // Name of image file used for this module
-        $this->picto = 'totp2fa@totp2fa';
+        // Using FontAwesome shield-alt icon (standard Dolibarr icon)
+        $this->picto = 'fa-shield-alt';
 
         // Dependencies
         $this->depends = array(); // List of module class names that must be enabled before this one
