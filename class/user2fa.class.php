@@ -595,18 +595,22 @@ class User2FA extends CommonObject
         $ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'Unknown';
         $time = dol_print_date(dol_now(), 'dayhour');
 
-        // Prepare email
+        // Prepare email subject
         $subject = $langs->trans("Email2FAFailedAttemptsSubject");
-        $body = sprintf(
-            $langs->trans("Email2FAFailedAttemptsBody"),
-            $userObj->getFullName($langs),
-            $attempts,
-            $ip,
-            $time
-        );
+
+        // Build body with proper newlines (translation \n doesn't work well with sprintf)
+        $userName = $userObj->getFullName($langs);
+        $body = "Hallo " . $userName . ",\n\n";
+        $body .= "es wurden " . (int)$attempts . " fehlgeschlagene Versuche registriert, sich mit Ihrem Konto anzumelden.\n\n";
+        $body .= "IP-Adresse: " . $ip . "\n";
+        $body .= "Zeitpunkt: " . $time . "\n\n";
+        $body .= "Wenn Sie diese Anmeldeversuche nicht unternommen haben, ändern Sie bitte umgehend Ihr Passwort.\n\n";
+        $body .= "Mit freundlichen Grüßen";
 
         // Add company signature
-        $body .= "\n\n".$conf->global->MAIN_INFO_SOCIETE_NOM;
+        if (!empty($conf->global->MAIN_INFO_SOCIETE_NOM)) {
+            $body .= "\n\n" . $conf->global->MAIN_INFO_SOCIETE_NOM;
+        }
 
         // Send email
         $from = !empty($conf->global->MAIN_MAIL_EMAIL_FROM) ? $conf->global->MAIN_MAIL_EMAIL_FROM : 'noreply@'.$_SERVER['SERVER_NAME'];
