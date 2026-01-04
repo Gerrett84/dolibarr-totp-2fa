@@ -62,9 +62,21 @@ $code = GETPOST('code', 'alpha');
 $use_backup = GETPOST('use_backup', 'int');
 $trust_device = GETPOST('trust_device', 'int');
 
-// Trusted device settings
-$trustedEnabled = getDolGlobalInt('TOTP2FA_TRUSTED_DEVICE_ENABLED', 0);
-$trustedDays = getDolGlobalInt('TOTP2FA_TRUSTED_DEVICE_DAYS', 30);
+// Trusted device settings - read directly from DB as $conf may not be fully loaded on login page
+$trustedEnabled = 0;
+$trustedDays = 30;
+$sqlConf = "SELECT name, value FROM ".MAIN_DB_PREFIX."const WHERE name IN ('TOTP2FA_TRUSTED_DEVICE_ENABLED', 'TOTP2FA_TRUSTED_DEVICE_DAYS')";
+$resqlConf = $db->query($sqlConf);
+if ($resqlConf) {
+    while ($objConf = $db->fetch_object($resqlConf)) {
+        if ($objConf->name == 'TOTP2FA_TRUSTED_DEVICE_ENABLED') {
+            $trustedEnabled = (int)$objConf->value;
+        }
+        if ($objConf->name == 'TOTP2FA_TRUSTED_DEVICE_DAYS') {
+            $trustedDays = (int)$objConf->value;
+        }
+    }
+}
 
 // Generate device hash for trusted device feature
 function getDeviceHash() {
@@ -306,10 +318,12 @@ if ($trustedEnabled) {
     print '<div class="tdinline">';
     print '<label style="display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-size: 14px;">';
     print '<input type="checkbox" name="trust_device" value="1" checked style="width: 18px; height: 18px;">';
-    print '<span>'.$langs->trans("TrustThisDevice").'</span>';
-    if (empty($langs->tab_translate["TrustThisDevice"])) {
-        print '<span>Diesem Gerät '.$trustedDays.' Tage vertrauen</span>';
+    $trustLabel = $langs->trans("TrustThisDevice");
+    if ($trustLabel == "TrustThisDevice") {
+        // Translation not found, use fallback
+        $trustLabel = 'Diesem Gerät '.$trustedDays.' Tage vertrauen';
     }
+    print '<span>'.$trustLabel.'</span>';
     print '</label>';
     print '</div>';
     print '</div>';
