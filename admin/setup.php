@@ -357,6 +357,67 @@ print '</tr>';
 print '</table>';
 print '</div>';
 
+// Detailed list of trusted devices
+if ($trustedDevicesCount > 0) {
+    print '<br>';
+    print '<div class="div-table-responsive-no-min">';
+    print '<table class="noborder centpercent">';
+    print '<tr class="liste_titre">';
+    print '<td>ID</td>';
+    print '<td>'.$langs->trans("User").'</td>';
+    print '<td>'.$langs->trans("Device").'</td>';
+    print '<td>'.$langs->trans("IPAddress").'</td>';
+    print '<td>'.$langs->trans("ValidUntil").'</td>';
+    print '<td>'.$langs->trans("LastUsed").'</td>';
+    print '</tr>';
+
+    $sql = "SELECT td.rowid, td.device_name, td.ip_address, td.trusted_until, td.date_last_use, td.date_creation,";
+    $sql .= " u.login, u.firstname, u.lastname";
+    $sql .= " FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices as td";
+    $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user as u ON td.fk_user = u.rowid";
+    $sql .= " WHERE td.trusted_until > NOW()";
+    $sql .= " ORDER BY td.trusted_until DESC";
+
+    $resql = $db->query($sql);
+    if ($resql) {
+        while ($obj = $db->fetch_object($resql)) {
+            // Calculate remaining days
+            $trustedUntil = new DateTime($obj->trusted_until);
+            $now = new DateTime();
+            $diff = $now->diff($trustedUntil);
+            $remainingDays = $diff->days;
+            if ($diff->invert) $remainingDays = 0;
+
+            // Format username
+            $username = $obj->login;
+            if (!empty($obj->firstname) || !empty($obj->lastname)) {
+                $username .= ' ('.trim($obj->firstname.' '.$obj->lastname).')';
+            }
+
+            print '<tr class="oddeven">';
+            print '<td>'.$obj->rowid.'</td>';
+            print '<td>'.htmlspecialchars($username).'</td>';
+            print '<td>'.htmlspecialchars($obj->device_name).'</td>';
+            print '<td>'.htmlspecialchars($obj->ip_address).'</td>';
+            print '<td>';
+            print dol_print_date($db->jdate($obj->trusted_until), 'dayhour');
+            print ' <span style="color: '.($remainingDays <= 3 ? '#f00' : '#666').'; font-size: 12px;">('.$remainingDays.' '.$langs->trans("Days").')</span>';
+            print '</td>';
+            print '<td>';
+            if (!empty($obj->date_last_use)) {
+                print dol_print_date($db->jdate($obj->date_last_use), 'dayhour');
+            } else {
+                print '<span style="color: #999;">-</span>';
+            }
+            print '</td>';
+            print '</tr>';
+        }
+    }
+
+    print '</table>';
+    print '</div>';
+}
+
 // Page end
 print dol_get_fiche_end();
 

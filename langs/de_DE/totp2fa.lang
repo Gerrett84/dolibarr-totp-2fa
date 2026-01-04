@@ -168,3 +168,6 @@ ConfirmClearAllTrusted=Wirklich ALLE vertrauenswürdigen Geräte löschen? Alle 
 ExpiredDevicesCleared=Abgelaufene Geräte wurden gelöscht
 AllTrustedDevicesCleared=Alle vertrauenswürdigen Geräte wurden gelöscht
 Days=Tage
+ValidUntil=Gültig bis
+LastUsed=Zuletzt verwendet
+Device=Gerät
