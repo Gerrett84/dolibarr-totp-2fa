@@ -60,6 +60,96 @@ $user_id = $_SESSION['totp2fa_user_id'];
 $action = GETPOST('action', 'aZ09');
 $code = GETPOST('code', 'alpha');
 $use_backup = GETPOST('use_backup', 'int');
+$trust_device = GETPOST('trust_device', 'int');
+
+// Trusted device settings
+$trustedEnabled = getDolGlobalInt('TOTP2FA_TRUSTED_DEVICE_ENABLED', 0);
+$trustedDays = getDolGlobalInt('TOTP2FA_TRUSTED_DEVICE_DAYS', 30);
+
+// Generate device hash for trusted device feature
+function getDeviceHash() {
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $acceptLang = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
+    // Create a hash based on browser fingerprint
+    return hash('sha256', $userAgent . '|' . $acceptLang);
+}
+
+// Check if current device is trusted
+function isDeviceTrusted($db, $user_id) {
+    $deviceHash = getDeviceHash();
+    $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
+    $sql .= " WHERE fk_user = ".(int)$user_id;
+    $sql .= " AND device_hash = '".$db->escape($deviceHash)."'";
+    $sql .= " AND trusted_until > NOW()";
+
+    $resql = $db->query($sql);
+    if ($resql && $db->num_rows($resql) > 0) {
+        // Update last use
+        $obj = $db->fetch_object($resql);
+        $sqlUpdate = "UPDATE ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
+        $sqlUpdate .= " SET date_last_use = NOW()";
+        $sqlUpdate .= " WHERE rowid = ".(int)$obj->rowid;
+        $db->query($sqlUpdate);
+        return true;
+    }
+    return false;
+}
+
+// Save device as trusted
+function trustDevice($db, $user_id, $days) {
+    $deviceHash = getDeviceHash();
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+
+    // Detect device name from user agent
+    $deviceName = 'Unbekanntes Gerät';
+    if (preg_match('/iPhone|iPad/', $userAgent)) {
+        $deviceName = 'Apple iOS';
+    } elseif (preg_match('/Android/', $userAgent)) {
+        $deviceName = 'Android';
+    } elseif (preg_match('/Windows/', $userAgent)) {
+        $deviceName = 'Windows PC';
+    } elseif (preg_match('/Macintosh/', $userAgent)) {
+        $deviceName = 'Mac';
+    } elseif (preg_match('/Linux/', $userAgent)) {
+        $deviceName = 'Linux';
+    }
+
+    // Delete existing entry for this device
+    $sql = "DELETE FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
+    $sql .= " WHERE fk_user = ".(int)$user_id;
+    $sql .= " AND device_hash = '".$db->escape($deviceHash)."'";
+    $db->query($sql);
+
+    // Insert new entry
+    $sql = "INSERT INTO ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
+    $sql .= " (fk_user, device_hash, device_name, ip_address, user_agent, trusted_until, date_creation)";
+    $sql .= " VALUES (";
+    $sql .= (int)$user_id.",";
+    $sql .= "'".$db->escape($deviceHash)."',";
+    $sql .= "'".$db->escape($deviceName)."',";
+    $sql .= "'".$db->escape($ip)."',";
+    $sql .= "'".$db->escape(substr($userAgent, 0, 500))."',";
+    $sql .= "DATE_ADD(NOW(), INTERVAL ".(int)$days." DAY),";
+    $sql .= "NOW()";
+    $sql .= ")";
+
+    return $db->query($sql);
+}
+
+// Check if this device is already trusted
+if ($trustedEnabled && isDeviceTrusted($db, $user_id)) {
+    // Device is trusted, skip 2FA
+    $_SESSION['totp2fa_verified'] = $user_id;
+    unset($_SESSION['totp2fa_pending_login']);
+    unset($_SESSION['totp2fa_user_id']);
+
+    $urltogo = isset($_SESSION['totp2fa_urltogo']) ? $_SESSION['totp2fa_urltogo'] : DOL_URL_ROOT.'/';
+    unset($_SESSION['totp2fa_urltogo']);
+
+    header('Location: '.$urltogo);
+    exit;
+}
 
 // Load user 2FA settings
 $user2fa = new User2FA($db);
@@ -85,6 +175,11 @@ if ($action == 'verify' && !empty($code)) {
         // Verify backup code
         $isValid = $user2fa->verifyBackupCode($code);
         if ($isValid) {
+            // Save trusted device if requested
+            if ($trustedEnabled && $trust_device) {
+                trustDevice($db, $user_id, $trustedDays);
+            }
+
             // Login successful! Mark as verified in this session
             $_SESSION['totp2fa_verified'] = $user_id;
             unset($_SESSION['totp2fa_pending_login']);
@@ -104,6 +199,11 @@ if ($action == 'verify' && !empty($code)) {
         // Verify TOTP code
         $isValid = $user2fa->verifyCode($code);
         if ($isValid) {
+            // Save trusted device if requested
+            if ($trustedEnabled && $trust_device) {
+                trustDevice($db, $user_id, $trustedDays);
+            }
+
             // Login successful! Mark as verified in this session
             $_SESSION['totp2fa_verified'] = $user_id;
             unset($_SESSION['totp2fa_pending_login']);
@@ -198,6 +298,23 @@ print 'autofocus required>';
 print '</div>';
 print '</div>';
 print '</div>';
+
+// Trust device checkbox (only if enabled by admin)
+if ($trustedEnabled) {
+    print '<div class="tagtable center" style="margin-bottom: 15px;">';
+    print '<div class="trinline">';
+    print '<div class="tdinline">';
+    print '<label style="display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-size: 14px;">';
+    print '<input type="checkbox" name="trust_device" value="1" checked style="width: 18px; height: 18px;">';
+    print '<span>'.$langs->trans("TrustThisDevice").'</span>';
+    if (empty($langs->tab_translate["TrustThisDevice"])) {
+        print '<span>Diesem Gerät '.$trustedDays.' Tage vertrauen</span>';
+    }
+    print '</label>';
+    print '</div>';
+    print '</div>';
+    print '</div>';
+}
 
 // Submit button
 print '<div class="tagtable center login_table_secours">';

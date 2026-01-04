@@ -66,6 +66,53 @@ if ($action == 'set_TOTP2FA_ALLOW_SELF_DISABLE') {
     }
 }
 
+// Trusted Device settings
+if ($action == 'set_trusted_device') {
+    $enabled = GETPOST('trusted_enabled', 'int');
+    $days = GETPOST('trusted_days', 'int');
+
+    // Validate days (1-90)
+    if ($days < 1) $days = 1;
+    if ($days > 90) $days = 90;
+
+    dolibarr_set_const($db, "TOTP2FA_TRUSTED_DEVICE_ENABLED", $enabled, 'chaine', 0, '', $conf->entity);
+    dolibarr_set_const($db, "TOTP2FA_TRUSTED_DEVICE_DAYS", $days, 'chaine', 0, '', $conf->entity);
+
+    // Create table if not exists
+    $sql = "CREATE TABLE IF NOT EXISTS ".MAIN_DB_PREFIX."totp2fa_trusted_devices (
+        rowid           INTEGER AUTO_INCREMENT PRIMARY KEY,
+        fk_user         INTEGER NOT NULL,
+        device_hash     VARCHAR(64) NOT NULL,
+        device_name     VARCHAR(255),
+        ip_address      VARCHAR(45),
+        user_agent      VARCHAR(512),
+        trusted_until   DATETIME NOT NULL,
+        date_creation   DATETIME NOT NULL,
+        date_last_use   DATETIME,
+        tms             TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uk_user_device (fk_user, device_hash),
+        KEY idx_user (fk_user),
+        KEY idx_trusted_until (trusted_until)
+    ) ENGINE=InnoDB";
+    $db->query($sql);
+
+    setEventMessages($langs->trans("SetupSaved"), null, 'mesgs');
+}
+
+// Clear expired trusted devices
+if ($action == 'clear_expired') {
+    $sql = "DELETE FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices WHERE trusted_until < NOW()";
+    $db->query($sql);
+    setEventMessages($langs->trans("ExpiredDevicesCleared"), null, 'mesgs');
+}
+
+// Clear all trusted devices
+if ($action == 'clear_all_trusted') {
+    $sql = "DELETE FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
+    $db->query($sql);
+    setEventMessages($langs->trans("AllTrustedDevicesCleared"), null, 'mesgs');
+}
+
 /*
  * View
  */
@@ -214,6 +261,100 @@ print '</ol>';
 print '<p><strong>'.$langs->trans("WhatIfLosePhone").'</strong><br>';
 print $langs->trans("UsePrintedBackupCodes").'<br>';
 print $langs->trans("ContactAdministrator").'</p>';
+print '</div>';
+
+print '<br>';
+
+// Trusted Device Settings
+$trustedEnabled = getDolGlobalInt('TOTP2FA_TRUSTED_DEVICE_ENABLED', 0);
+$trustedDays = getDolGlobalInt('TOTP2FA_TRUSTED_DEVICE_DAYS', 30);
+
+// Count trusted devices
+$trustedDevicesCount = 0;
+$sql = "SELECT COUNT(*) as cnt FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices WHERE trusted_until > NOW()";
+$resql = $db->query($sql);
+if ($resql) {
+    $obj = $db->fetch_object($resql);
+    $trustedDevicesCount = $obj->cnt;
+}
+
+print '<div class="div-table-responsive-no-min">';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre">';
+print '<td colspan="2">'.$langs->trans("TrustedDeviceSettings").'</td>';
+print '</tr>';
+
+print '<tr class="oddeven">';
+print '<td colspan="2">';
+print '<form method="post" action="'.$_SERVER["PHP_SELF"].'">';
+print '<input type="hidden" name="token" value="'.newToken().'">';
+print '<input type="hidden" name="action" value="set_trusted_device">';
+
+print '<table class="nobordernopadding">';
+
+// Enable/Disable
+print '<tr>';
+print '<td style="padding: 8px 0;"><strong>'.$langs->trans("EnableTrustedDevices").'</strong></td>';
+print '<td style="padding: 8px 0;">';
+print '<select name="trusted_enabled" class="flat">';
+print '<option value="0"'.($trustedEnabled == 0 ? ' selected' : '').'>'.$langs->trans("No").'</option>';
+print '<option value="1"'.($trustedEnabled == 1 ? ' selected' : '').'>'.$langs->trans("Yes").'</option>';
+print '</select>';
+print '</td>';
+print '</tr>';
+
+// Days
+print '<tr>';
+print '<td style="padding: 8px 0;"><strong>'.$langs->trans("TrustDeviceForDays").'</strong></td>';
+print '<td style="padding: 8px 0;">';
+print '<input type="number" name="trusted_days" value="'.$trustedDays.'" min="1" max="90" class="flat" style="width: 80px;"> ';
+print $langs->trans("Days").' <span style="color: #666;">(1-90)</span>';
+print '</td>';
+print '</tr>';
+
+print '<tr>';
+print '<td style="padding: 8px 0;"></td>';
+print '<td style="padding: 8px 0;">';
+print '<input type="submit" class="button button-save" value="'.$langs->trans("Save").'">';
+print '</td>';
+print '</tr>';
+
+print '</table>';
+print '</form>';
+print '</td>';
+print '</tr>';
+
+// Description
+print '<tr class="oddeven">';
+print '<td>'.$langs->trans("Description").'</td>';
+print '<td>';
+print '<div style="color: #666; font-size: 13px;">';
+print $langs->trans("TrustedDeviceDescription");
+if (empty($langs->tab_translate["TrustedDeviceDescription"])) {
+    print 'Wenn aktiviert, können Benutzer ihr Gerät als "vertrauenswürdig" markieren. ';
+    print 'Für die eingestellte Anzahl an Tagen wird keine erneute 2FA-Code-Eingabe benötigt.';
+}
+print '</div>';
+print '</td>';
+print '</tr>';
+
+// Current trusted devices count
+print '<tr class="oddeven">';
+print '<td>'.$langs->trans("ActiveTrustedDevices").'</td>';
+print '<td>';
+print '<strong>'.$trustedDevicesCount.'</strong> ';
+if ($trustedDevicesCount > 0) {
+    print '<a href="'.$_SERVER["PHP_SELF"].'?action=clear_expired&token='.newToken().'" class="button buttongen" style="margin-left: 10px;" onclick="return confirm(\''.$langs->trans("ConfirmClearExpired").'\');">';
+    print $langs->trans("ClearExpired");
+    print '</a> ';
+    print '<a href="'.$_SERVER["PHP_SELF"].'?action=clear_all_trusted&token='.newToken().'" class="button buttongen" style="margin-left: 5px;" onclick="return confirm(\''.$langs->trans("ConfirmClearAllTrusted").'\');">';
+    print $langs->trans("ClearAll");
+    print '</a>';
+}
+print '</td>';
+print '</tr>';
+
+print '</table>';
 print '</div>';
 
 // Page end

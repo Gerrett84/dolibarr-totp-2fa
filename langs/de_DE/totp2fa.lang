@@ -153,3 +153,18 @@ NoActivityLog=Keine Aktivitäten protokolliert
 Filters=Filter
 IPAddress=IP-Adresse
 Details=Details
+
+# Trusted Devices
+TrustedDeviceSettings=Vertrauenswürdige Geräte
+EnableTrustedDevices=Vertrauenswürdige Geräte aktivieren
+TrustDeviceForDays=Gerät vertrauen für
+TrustedDeviceDescription=Wenn aktiviert, können Benutzer ihr Gerät als "vertrauenswürdig" markieren. Für die eingestellte Anzahl an Tagen wird keine erneute 2FA-Code-Eingabe benötigt.
+TrustThisDevice=Diesem Gerät vertrauen
+ActiveTrustedDevices=Aktive vertrauenswürdige Geräte
+ClearExpired=Abgelaufene löschen
+ClearAll=Alle löschen
+ConfirmClearExpired=Wirklich alle abgelaufenen vertrauenswürdigen Geräte löschen?
+ConfirmClearAllTrusted=Wirklich ALLE vertrauenswürdigen Geräte löschen? Alle Benutzer müssen sich erneut mit 2FA verifizieren.
+ExpiredDevicesCleared=Abgelaufene Geräte wurden gelöscht
+AllTrustedDevicesCleared=Alle vertrauenswürdigen Geräte wurden gelöscht
+Days=Tage
