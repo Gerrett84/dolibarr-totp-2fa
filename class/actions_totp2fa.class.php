@@ -160,6 +160,17 @@ class ActionsTotp2fa
         if ($result > 0 && $user2fa->is_enabled) {
             // User has 2FA enabled
 
+            // Check trusted device settings
+            $trustedEnabled = getDolGlobalInt('TOTP2FA_TRUSTED_DEVICE_ENABLED', 0);
+            $trustedDays = getDolGlobalInt('TOTP2FA_TRUSTED_DEVICE_DAYS', 30);
+
+            // Check if this device is trusted
+            if ($trustedEnabled && $this->isDeviceTrusted($db, $user_id)) {
+                // Device is trusted - skip 2FA
+                $_SESSION['totp2fa_verified'] = $user_id;
+                return 0; // Allow login without 2FA
+            }
+
             if (empty($totp_code)) {
                 // No 2FA code provided - block login
                 $langs->load("totp2fa@totp2fa");
@@ -187,8 +198,92 @@ class ActionsTotp2fa
             // Code is valid - log success, allow login and mark as verified
             $user2fa->logLoginSuccess();
             $_SESSION['totp2fa_verified'] = $user_id;
+
+            // Save device as trusted if feature is enabled
+            if ($trustedEnabled) {
+                $this->trustDevice($db, $user_id, $trustedDays);
+            }
         }
 
         return 0; // Allow login
+    }
+
+    /**
+     * Generate device hash for trusted device feature
+     */
+    private function getDeviceHash()
+    {
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $acceptLang = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
+        return hash('sha256', $userAgent . '|' . $acceptLang);
+    }
+
+    /**
+     * Check if current device is trusted
+     */
+    private function isDeviceTrusted($db, $user_id)
+    {
+        $deviceHash = $this->getDeviceHash();
+        $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
+        $sql .= " WHERE fk_user = ".(int)$user_id;
+        $sql .= " AND device_hash = '".$db->escape($deviceHash)."'";
+        $sql .= " AND trusted_until > NOW()";
+
+        $resql = $db->query($sql);
+        if ($resql && $db->num_rows($resql) > 0) {
+            // Update last use
+            $obj = $db->fetch_object($resql);
+            $sqlUpdate = "UPDATE ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
+            $sqlUpdate .= " SET date_last_use = NOW()";
+            $sqlUpdate .= " WHERE rowid = ".(int)$obj->rowid;
+            $db->query($sqlUpdate);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Save device as trusted
+     */
+    private function trustDevice($db, $user_id, $days)
+    {
+        $deviceHash = $this->getDeviceHash();
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+
+        // Detect device name
+        $deviceName = 'Unbekanntes Gerät';
+        if (preg_match('/iPhone|iPad/', $userAgent)) {
+            $deviceName = 'Apple iOS';
+        } elseif (preg_match('/Android/', $userAgent)) {
+            $deviceName = 'Android';
+        } elseif (preg_match('/Windows/', $userAgent)) {
+            $deviceName = 'Windows PC';
+        } elseif (preg_match('/Macintosh/', $userAgent)) {
+            $deviceName = 'Mac';
+        } elseif (preg_match('/Linux/', $userAgent)) {
+            $deviceName = 'Linux';
+        }
+
+        // Delete existing entry for this device
+        $sql = "DELETE FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
+        $sql .= " WHERE fk_user = ".(int)$user_id;
+        $sql .= " AND device_hash = '".$db->escape($deviceHash)."'";
+        $db->query($sql);
+
+        // Insert new entry
+        $sql = "INSERT INTO ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
+        $sql .= " (fk_user, device_hash, device_name, ip_address, user_agent, trusted_until, date_creation)";
+        $sql .= " VALUES (";
+        $sql .= (int)$user_id.",";
+        $sql .= "'".$db->escape($deviceHash)."',";
+        $sql .= "'".$db->escape($deviceName)."',";
+        $sql .= "'".$db->escape($ip)."',";
+        $sql .= "'".$db->escape(substr($userAgent, 0, 500))."',";
+        $sql .= "DATE_ADD(NOW(), INTERVAL ".(int)$days." DAY),";
+        $sql .= "NOW()";
+        $sql .= ")";
+
+        return $db->query($sql);
     }
 }
