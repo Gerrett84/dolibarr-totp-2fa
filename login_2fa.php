@@ -76,6 +76,8 @@ if ($resqlConf) {
         }
     }
 }
+// DEBUG - remove after testing
+error_log("TOTP2FA DEBUG: trustedEnabled=$trustedEnabled, trustedDays=$trustedDays");
 
 // Generate device hash for trusted device feature
 function getDeviceHash() {
@@ -308,6 +310,11 @@ print 'style="font-size: 28px; text-align: center; letter-spacing: 8px; width: 2
 print 'autofocus required>';
 print '</div>';
 print '</div>';
+print '</div>';
+
+// DEBUG output - remove after testing
+print '<div style="background:#ffe0e0;padding:10px;margin:10px;font-size:11px;border:1px solid red;">';
+print 'DEBUG: trustedEnabled='.$trustedEnabled.', trustedDays='.$trustedDays;
 print '</div>';
 
 // Info about trusted device (if enabled)
