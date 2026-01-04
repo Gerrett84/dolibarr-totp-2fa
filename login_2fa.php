@@ -245,6 +245,13 @@ $title = $langs->trans("TwoFactorAuthentication");
 top_htmlhead('', $title);
 
 print '<body class="body bodylogin">';
+
+// DEBUG - ganz oben
+print '<div style="position:fixed;top:0;left:0;right:0;background:red;color:white;padding:10px;z-index:9999;font-size:14px;">';
+print 'DEBUG: trustedEnabled='.$trustedEnabled.', trustedDays='.$trustedDays.' (Version 1.2-debug)';
+print '</div>';
+print '<div style="margin-top:50px;"></div>';
+
 print '<div class="login_center center">';
 print '<div class="login_vertical_align">';
 
