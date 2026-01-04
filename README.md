@@ -18,6 +18,7 @@ Add enterprise-grade Two-Factor Authentication (2FA) to your Dolibarr installati
 - **QR Code Setup** - Scan and configure in seconds
 - **User Self-Service** - Each user manages their own 2FA settings
 - **Backup Codes** - Emergency access codes for recovery
+- **Trusted Devices** - Skip 2FA on trusted devices for configurable days (1-90)
 - **Optional Enforcement** - Admin can make 2FA mandatory for specific users or groups
 - **Secure** - Industry-standard TOTP with 30-second rotating codes
 
@@ -83,7 +84,13 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.1 (Current Release) ✅
+### v1.2 (Current Release) ✅
+- [x] Trusted Devices - Skip 2FA for trusted devices (configurable 1-90 days)
+- [x] Admin-only setting to enable/disable trusted devices
+- [x] Detailed trusted devices overview in admin panel
+- [x] Automatic device detection (Windows, Mac, Linux, iOS, Android)
+
+### v1.1 ✅
 - [x] Email notifications (2FA enabled/disabled, 3 failed attempts warning)
 - [x] Activity log for all 2FA events
 - [x] Admin can disable 2FA for users (emergency)
@@ -166,6 +173,17 @@ GPL v3 or higher - Same as Dolibarr
 
 -----
 
-**Current Version:** 1.1.0
+## ⚠️ Backup
+
+Before upgrading, always backup your database:
+
+```bash
+# Backup 2FA tables
+mysqldump -u root -p dolibarr llx_totp2fa_user_settings llx_totp2fa_backup_codes llx_totp2fa_activity_log llx_totp2fa_trusted_devices > totp2fa_backup.sql
+```
+
+-----
+
+**Current Version:** 1.2.0
 **Status:** Stable
 **Compatibility:** Dolibarr 22.0+
