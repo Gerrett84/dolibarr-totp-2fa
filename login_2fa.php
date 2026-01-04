@@ -60,7 +60,6 @@ $user_id = $_SESSION['totp2fa_user_id'];
 $action = GETPOST('action', 'aZ09');
 $code = GETPOST('code', 'alpha');
 $use_backup = GETPOST('use_backup', 'int');
-$trust_device = GETPOST('trust_device', 'int');
 
 // Trusted device settings - read directly from DB as $conf may not be fully loaded on login page
 $trustedEnabled = 0;
@@ -187,8 +186,8 @@ if ($action == 'verify' && !empty($code)) {
         // Verify backup code
         $isValid = $user2fa->verifyBackupCode($code);
         if ($isValid) {
-            // Save trusted device if requested
-            if ($trustedEnabled && $trust_device) {
+            // Automatically save trusted device if feature is enabled
+            if ($trustedEnabled) {
                 trustDevice($db, $user_id, $trustedDays);
             }
 
@@ -211,8 +210,8 @@ if ($action == 'verify' && !empty($code)) {
         // Verify TOTP code
         $isValid = $user2fa->verifyCode($code);
         if ($isValid) {
-            // Save trusted device if requested
-            if ($trustedEnabled && $trust_device) {
+            // Automatically save trusted device if feature is enabled
+            if ($trustedEnabled) {
                 trustDevice($db, $user_id, $trustedDays);
             }
 
@@ -311,20 +310,14 @@ print '</div>';
 print '</div>';
 print '</div>';
 
-// Trust device checkbox (only if enabled by admin)
+// Info about trusted device (if enabled)
 if ($trustedEnabled) {
     print '<div class="tagtable center" style="margin-bottom: 15px;">';
     print '<div class="trinline">';
     print '<div class="tdinline">';
-    print '<label style="display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-size: 14px;">';
-    print '<input type="checkbox" name="trust_device" value="1" checked style="width: 18px; height: 18px;">';
-    $trustLabel = $langs->trans("TrustThisDevice");
-    if ($trustLabel == "TrustThisDevice") {
-        // Translation not found, use fallback
-        $trustLabel = 'Diesem Gerät '.$trustedDays.' Tage vertrauen';
-    }
-    print '<span>'.$trustLabel.'</span>';
-    print '</label>';
+    print '<div style="font-size: 12px; color: #666; background: #f5f5f5; padding: 8px 12px; border-radius: 4px;">';
+    print '🔒 Dieses Gerät wird '.$trustedDays.' Tage gespeichert';
+    print '</div>';
     print '</div>';
     print '</div>';
     print '</div>';
