@@ -165,20 +165,22 @@ class ActionsTotp2fa
             $trustedDays = getDolGlobalInt('TOTP2FA_TRUSTED_DEVICE_DAYS', 30);
 
             // Check if this device is trusted
-            if ($trustedEnabled && $this->isDeviceTrusted($db, $user_id)) {
-                // Device is trusted - skip 2FA
+            $deviceIsTrusted = ($trustedEnabled && $this->isDeviceTrusted($db, $user_id));
+
+            if ($deviceIsTrusted && empty($totp_code)) {
+                // Device is trusted AND no code entered - skip 2FA (no renewal)
                 $_SESSION['totp2fa_verified'] = $user_id;
                 return 0; // Allow login without 2FA
             }
 
-            if (empty($totp_code)) {
-                // No 2FA code provided - block login
+            if (!$deviceIsTrusted && empty($totp_code)) {
+                // Device NOT trusted and no code - block login
                 $langs->load("totp2fa@totp2fa");
                 $this->errors[] = $langs->trans("PleaseEnterCode");
                 return -1; // Block login
             }
 
-            // Verify the 2FA code
+            // Code was provided - verify it (for both trusted and non-trusted devices)
             $isValid = $user2fa->verifyCode($totp_code);
 
             // If TOTP code is not valid, try backup code
@@ -187,7 +189,12 @@ class ActionsTotp2fa
             }
 
             if (!$isValid) {
-                // Invalid code - log failed attempt and check for email notification
+                if ($deviceIsTrusted) {
+                    // Trusted device with wrong code - still allow login but don't renew
+                    $_SESSION['totp2fa_verified'] = $user_id;
+                    return 0;
+                }
+                // Invalid code for non-trusted device - log failed attempt
                 $user2fa->logLoginFailed();
 
                 $langs->load("totp2fa@totp2fa");
@@ -199,7 +206,8 @@ class ActionsTotp2fa
             $user2fa->logLoginSuccess();
             $_SESSION['totp2fa_verified'] = $user_id;
 
-            // Save device as trusted if feature is enabled
+            // Save/renew device as trusted if feature is enabled
+            // This renews the trust period for BOTH new and already-trusted devices
             if ($trustedEnabled) {
                 $this->trustDevice($db, $user_id, $trustedDays);
             }
