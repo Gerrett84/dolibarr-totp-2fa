@@ -84,7 +84,13 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.2 (Current Release) ✅
+### v1.3 (Current Release) ✅
+- [x] **Trust Renewal** - Enter code on trusted device to renew trust period
+- [x] Show remaining trust days on login page
+- [x] Skip button for trusted devices (proceed without code)
+- [x] Improved UX for trusted device handling
+
+### v1.2 ✅
 - [x] Trusted Devices - Skip 2FA for trusted devices (configurable 1-90 days)
 - [x] Admin-only setting to enable/disable trusted devices
 - [x] Detailed trusted devices overview in admin panel
@@ -184,6 +190,6 @@ mysqldump -u root -p dolibarr llx_totp2fa_user_settings llx_totp2fa_backup_codes
 
 -----
 
-**Current Version:** 1.2.0
+**Current Version:** 1.3.0
 **Status:** Stable
 **Compatibility:** Dolibarr 22.0+

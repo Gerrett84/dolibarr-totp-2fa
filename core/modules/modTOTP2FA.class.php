@@ -60,7 +60,7 @@ class modTOTP2FA extends DolibarrModules
         $this->descriptionlong = "Add Two-Factor Authentication (2FA) to Dolibarr using Time-based One-Time Passwords (TOTP). Compatible with Google Authenticator, Apple Passwords, Microsoft Authenticator, Authy, and other RFC 6238 compliant apps.";
 
         // Version (semantic versioning: major.minor.patch)
-        $this->version = '1.2.0';
+        $this->version = '1.3.0';
 
         // Editor/Publisher
         $this->editor_name = 'Gerrett84';

@@ -85,25 +85,25 @@ function getDeviceHash() {
     return hash('sha256', $userAgent . '|' . $acceptLang);
 }
 
-// Check if current device is trusted
-function isDeviceTrusted($db, $user_id) {
+// Check if current device is trusted - returns remaining days or 0 if not trusted
+function getDeviceTrustDays($db, $user_id) {
     $deviceHash = getDeviceHash();
-    $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
+    $sql = "SELECT rowid, DATEDIFF(trusted_until, NOW()) as remaining_days FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
     $sql .= " WHERE fk_user = ".(int)$user_id;
     $sql .= " AND device_hash = '".$db->escape($deviceHash)."'";
     $sql .= " AND trusted_until > NOW()";
 
     $resql = $db->query($sql);
     if ($resql && $db->num_rows($resql) > 0) {
-        // Update last use
         $obj = $db->fetch_object($resql);
-        $sqlUpdate = "UPDATE ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
-        $sqlUpdate .= " SET date_last_use = NOW()";
-        $sqlUpdate .= " WHERE rowid = ".(int)$obj->rowid;
-        $db->query($sqlUpdate);
-        return true;
+        return max(1, (int)$obj->remaining_days); // At least 1 day if still valid
     }
-    return false;
+    return 0;
+}
+
+// Check if current device is trusted (legacy function for compatibility)
+function isDeviceTrusted($db, $user_id) {
+    return getDeviceTrustDays($db, $user_id) > 0;
 }
 
 // Save device as trusted
@@ -148,18 +148,12 @@ function trustDevice($db, $user_id, $days) {
     return $db->query($sql);
 }
 
-// Check if this device is already trusted
-if ($trustedEnabled && isDeviceTrusted($db, $user_id)) {
-    // Device is trusted, skip 2FA
-    $_SESSION['totp2fa_verified'] = $user_id;
-    unset($_SESSION['totp2fa_pending_login']);
-    unset($_SESSION['totp2fa_user_id']);
-
-    $urltogo = isset($_SESSION['totp2fa_urltogo']) ? $_SESSION['totp2fa_urltogo'] : DOL_URL_ROOT.'/';
-    unset($_SESSION['totp2fa_urltogo']);
-
-    header('Location: '.$urltogo);
-    exit;
+// Check if this device is already trusted - get remaining days
+$deviceTrustDays = 0;
+$isDeviceAlreadyTrusted = false;
+if ($trustedEnabled) {
+    $deviceTrustDays = getDeviceTrustDays($db, $user_id);
+    $isDeviceAlreadyTrusted = ($deviceTrustDays > 0);
 }
 
 // Load user 2FA settings
@@ -180,6 +174,21 @@ if ($result <= 0 || !$user2fa->is_enabled) {
 
 $error = 0;
 $errors = array();
+$success_message = '';
+
+// Handle skip action for trusted devices
+if ($action == 'skip' && $isDeviceAlreadyTrusted) {
+    // Device is trusted, skip 2FA without renewal
+    $_SESSION['totp2fa_verified'] = $user_id;
+    unset($_SESSION['totp2fa_pending_login']);
+    unset($_SESSION['totp2fa_user_id']);
+
+    $urltogo = isset($_SESSION['totp2fa_urltogo']) ? $_SESSION['totp2fa_urltogo'] : DOL_URL_ROOT.'/';
+    unset($_SESSION['totp2fa_urltogo']);
+
+    header('Location: '.$urltogo);
+    exit;
+}
 
 if ($action == 'verify' && !empty($code)) {
     if ($use_backup) {
@@ -273,12 +282,20 @@ print '</div>';
 print '</div>';
 print '</div>';
 
-// Instructions
+// Instructions - different for trusted vs. non-trusted devices
 print '<div class="tagtable center login_main_body">';
 print '<div class="trinline">';
 print '<div class="tdinline">';
 print '<div style="margin: 20px 0; color: #666;">';
-print $langs->trans("PleaseEnter2FACode");
+if ($isDeviceAlreadyTrusted) {
+    // Device is trusted - show info about remaining days and option to renew
+    print '<div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #4caf50;">';
+    print '<span style="color: #2e7d32;">✓ '.sprintf($langs->trans("DeviceTrustedInfo"), $deviceTrustDays).'</span>';
+    print '</div>';
+    print $langs->trans("EnterCodeToRenew");
+} else {
+    print $langs->trans("PleaseEnter2FACode");
+}
 print '</div>';
 print '</div>';
 print '</div>';
@@ -312,7 +329,8 @@ print '</div>';
 print '</div>';
 
 // Info about trusted device (if enabled)
-if ($trustedEnabled) {
+if ($trustedEnabled && !$isDeviceAlreadyTrusted) {
+    // For non-trusted devices: Show that device will be saved
     print '<div class="tagtable center" style="margin-bottom: 15px;">';
     print '<div class="trinline">';
     print '<div class="tdinline">';
@@ -322,13 +340,28 @@ if ($trustedEnabled) {
     print '</div>';
     print '</div>';
     print '</div>';
+} elseif ($trustedEnabled && $isDeviceAlreadyTrusted) {
+    // For trusted devices: Show renewal info
+    print '<div class="tagtable center" style="margin-bottom: 15px;">';
+    print '<div class="trinline">';
+    print '<div class="tdinline">';
+    print '<div style="font-size: 12px; color: #666; background: #f5f5f5; padding: 8px 12px; border-radius: 4px;">';
+    print '🔄 Bei Code-Eingabe: Verlängerung auf '.$trustedDays.' Tage';
+    print '</div>';
+    print '</div>';
+    print '</div>';
+    print '</div>';
 }
 
-// Submit button
+// Submit button(s)
 print '<div class="tagtable center login_table_secours">';
 print '<div class="trinline">';
 print '<div class="tdinline nowraponall center valignmiddle">';
 print '<input type="submit" class="button" value="'.$langs->trans("Verify").'" style="padding: 10px 30px; font-size: 16px;">';
+if ($isDeviceAlreadyTrusted) {
+    // Add skip button for trusted devices
+    print ' &nbsp; <input type="button" class="button" value="'.$langs->trans("SkipAndContinue").'" style="padding: 10px 30px; font-size: 16px; background: #f5f5f5; color: #666;" onclick="skipVerification();">';
+}
 print '</div>';
 print '</div>';
 print '</div>';
@@ -364,8 +397,17 @@ print '</form>';
 print '</div>'; // login_vertical_align
 print '</div>'; // login_center
 
-// JavaScript for backup code toggle and countdown
+// JavaScript for backup code toggle, skip and countdown
 print '<script>';
+
+// Skip verification function (for trusted devices)
+print 'function skipVerification() {';
+print '  var form = document.getElementById("login");';
+print '  var actionInput = form.querySelector("input[name=action]");';
+print '  actionInput.value = "skip";';
+print '  form.submit();';
+print '}';
+
 print 'function toggleBackupCode() {';
 print '  var useBackup = document.getElementById("use_backup");';
 print '  var codeInput = document.getElementById("code");';

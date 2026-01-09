@@ -171,3 +171,11 @@ Days=Tage
 ValidUntil=Gültig bis
 LastUsed=Zuletzt verwendet
 Device=Gerät
+
+# Trust Renewal (v1.3)
+DeviceTrusted=Gerät ist vertrauenswürdig
+DeviceTrustedInfo=Dieses Gerät ist noch %s Tage vertrauenswürdig. Code eingeben um zu verlängern.
+Skip=Überspringen
+SkipAndContinue=Überspringen
+TrustPeriodRenewed=Vertrauenszeitraum wurde auf %s Tage verlängert
+EnterCodeToRenew=Code eingeben um Vertrauenszeitraum zu verlängern
