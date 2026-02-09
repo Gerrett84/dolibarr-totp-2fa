@@ -2,7 +2,7 @@
 
 **Free & Open Source Two-Factor Authentication for Dolibarr**
 
-[![Dolibarr](https://img.shields.io/badge/Dolibarr-22.0%2B-blue.svg)](https://www.dolibarr.org)
+[![Dolibarr](https://img.shields.io/badge/Dolibarr-21.0%2B-blue.svg)](https://www.dolibarr.org)
 [![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://www.php.net)
 [![TOTP](https://img.shields.io/badge/RFC-6238-orange.svg)](https://tools.ietf.org/html/rfc6238)
@@ -20,6 +20,7 @@ Add enterprise-grade Two-Factor Authentication (2FA) to your Dolibarr installati
 - **Backup Codes** - Emergency access codes for recovery
 - **Trusted Devices** - Skip 2FA on trusted devices for configurable days (1-90)
 - **Optional Enforcement** - Admin can make 2FA mandatory for specific users or groups
+- **Multi-Company Support** - Works with Dolibarr Multi-Company module
 - **Secure** - Industry-standard TOTP with 30-second rotating codes
 
 -----
@@ -48,7 +49,7 @@ chmod -R 755 totp2fa
 # Setup → Modules → TOTP 2FA → Activate
 ```
 
-**Requirements:** Dolibarr 22.0+, PHP 7.4+, MySQL/MariaDB
+**Requirements:** Dolibarr 21.0+, PHP 7.4+, MySQL/MariaDB
 
 -----
 
@@ -84,7 +85,11 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.3 (Current Release) ✅
+### v1.3.1 (Current Release) ✅
+- [x] **Dolibarr 21 Support** - Lowered minimum version requirement
+- [x] **Multi-Company Support** - Confirmed working with Multi-Company module (thanks @fefed22!)
+
+### v1.3 ✅
 - [x] **Trust Renewal** - Enter code on trusted device to renew trust period
 - [x] Show remaining trust days on login page
 - [x] Skip button for trusted devices (proceed without code)
@@ -172,6 +177,7 @@ GPL v3 or higher - Same as Dolibarr
 - Dolibarr Community
 - RFC 6238 TOTP Standard
 - Open Source Security Community
+- [@fefed22](https://github.com/fefed22) - Multi-Company & Dolibarr 21 compatibility testing
 
 -----
 
@@ -190,6 +196,6 @@ mysqldump -u root -p dolibarr llx_totp2fa_user_settings llx_totp2fa_backup_codes
 
 -----
 
-**Current Version:** 1.3.0
+**Current Version:** 1.3.1
 **Status:** Stable
-**Compatibility:** Dolibarr 22.0+
+**Compatibility:** Dolibarr 21.0+
