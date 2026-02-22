@@ -133,6 +133,15 @@ class ActionsTotp2fa
 
         $usertotest = isset($parameters['usertotest']) ? $parameters['usertotest'] : GETPOST('username', 'alpha');
         $totp_code = GETPOST('totp_code', 'alpha');
+        $ip_address = $this->getClientIP();
+
+        // Check if IP is blocked
+        if ($this->isIpBlocked($ip_address)) {
+            $this->logLoginAttempt($ip_address, $usertotest, 'blocked');
+            $langs->load("totp2fa@totp2fa");
+            $this->errors[] = $langs->trans("IPBlocked");
+            return -1;
+        }
 
         if (empty($usertotest)) {
             return 0;
@@ -196,6 +205,7 @@ class ActionsTotp2fa
                 }
                 // Invalid code for non-trusted device - log failed attempt
                 $user2fa->logLoginFailed();
+                $this->logLoginAttempt($ip_address, $usertotest, 'failed_2fa');
 
                 $langs->load("totp2fa@totp2fa");
                 $this->errors[] = $user2fa->error ? $user2fa->error : $langs->trans("InvalidCode");
@@ -204,6 +214,7 @@ class ActionsTotp2fa
 
             // Code is valid - log success, allow login and mark as verified
             $user2fa->logLoginSuccess();
+            $this->logLoginAttempt($ip_address, $usertotest, 'success');
             $_SESSION['totp2fa_verified'] = $user_id;
 
             // Save/renew device as trusted if feature is enabled
@@ -293,5 +304,128 @@ class ActionsTotp2fa
         $sql .= ")";
 
         return $db->query($sql);
+    }
+
+    /**
+     * Get client IP address (handles proxies)
+     */
+    private function getClientIP()
+    {
+        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+            return trim($ips[0]);
+        }
+        if (!empty($_SERVER['HTTP_X_REAL_IP'])) {
+            return $_SERVER['HTTP_X_REAL_IP'];
+        }
+        return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    }
+
+    /**
+     * Check if IP is blocked
+     */
+    private function isIpBlocked($ip_address)
+    {
+        global $conf;
+
+        $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."totp2fa_ip_blacklist";
+        $sql .= " WHERE active = 1";
+        $sql .= " AND entity = ".(int)$conf->entity;
+        $sql .= " AND (date_expiry IS NULL OR date_expiry > NOW())";
+        $sql .= " AND (ip_address = '".$this->db->escape($ip_address)."'";
+        // Also check for CIDR ranges (simple implementation for /24)
+        $sql .= " OR '".$this->db->escape($ip_address)."' LIKE CONCAT(SUBSTRING_INDEX(ip_address, '/', 1), '%'))";
+
+        $resql = $this->db->query($sql);
+        if ($resql && $this->db->num_rows($resql) > 0) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Log a login attempt
+     *
+     * @param string $ip_address IP address
+     * @param string $username Username attempted
+     * @param string $attempt_type Type: 'success', 'failed_password', 'failed_2fa', 'blocked'
+     */
+    private function logLoginAttempt($ip_address, $username, $attempt_type)
+    {
+        global $conf;
+
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
+        $sql = "INSERT INTO ".MAIN_DB_PREFIX."totp2fa_login_attempts";
+        $sql .= " (ip_address, username, user_agent, attempt_type, datec, entity)";
+        $sql .= " VALUES (";
+        $sql .= "'".$this->db->escape($ip_address)."',";
+        $sql .= "'".$this->db->escape($username)."',";
+        $sql .= "'".$this->db->escape(substr($user_agent, 0, 500))."',";
+        $sql .= "'".$this->db->escape($attempt_type)."',";
+        $sql .= "NOW(),";
+        $sql .= (int)$conf->entity;
+        $sql .= ")";
+
+        $this->db->query($sql);
+    }
+
+    /**
+     * Block an IP address
+     *
+     * @param string $ip_address IP to block
+     * @param string $reason Reason for blocking
+     * @param int $blocked_by User ID who blocked
+     * @param int $days Days to block (0 = permanent)
+     * @return int >0 if OK, <0 if KO
+     */
+    public function blockIP($ip_address, $reason = '', $blocked_by = 0, $days = 0)
+    {
+        global $conf;
+
+        // Remove existing entry
+        $sql = "DELETE FROM ".MAIN_DB_PREFIX."totp2fa_ip_blacklist";
+        $sql .= " WHERE ip_address = '".$this->db->escape($ip_address)."'";
+        $sql .= " AND entity = ".(int)$conf->entity;
+        $this->db->query($sql);
+
+        // Insert new entry
+        $sql = "INSERT INTO ".MAIN_DB_PREFIX."totp2fa_ip_blacklist";
+        $sql .= " (ip_address, reason, blocked_by, datec, date_expiry, active, entity)";
+        $sql .= " VALUES (";
+        $sql .= "'".$this->db->escape($ip_address)."',";
+        $sql .= "'".$this->db->escape($reason)."',";
+        $sql .= ($blocked_by > 0 ? (int)$blocked_by : "NULL").",";
+        $sql .= "NOW(),";
+        $sql .= ($days > 0 ? "DATE_ADD(NOW(), INTERVAL ".(int)$days." DAY)" : "NULL").",";
+        $sql .= "1,";
+        $sql .= (int)$conf->entity;
+        $sql .= ")";
+
+        if ($this->db->query($sql)) {
+            return 1;
+        }
+        return -1;
+    }
+
+    /**
+     * Unblock an IP address
+     *
+     * @param string $ip_address IP to unblock
+     * @return int >0 if OK, <0 if KO
+     */
+    public function unblockIP($ip_address)
+    {
+        global $conf;
+
+        $sql = "UPDATE ".MAIN_DB_PREFIX."totp2fa_ip_blacklist";
+        $sql .= " SET active = 0";
+        $sql .= " WHERE ip_address = '".$this->db->escape($ip_address)."'";
+        $sql .= " AND entity = ".(int)$conf->entity;
+
+        if ($this->db->query($sql)) {
+            return 1;
+        }
+        return -1;
     }
 }

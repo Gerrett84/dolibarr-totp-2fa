@@ -138,6 +138,11 @@ $head[$h][1] = $langs->trans('ActivityLog');
 $head[$h][2] = 'activitylog';
 $h++;
 
+$head[$h][0] = dol_buildpath('/totp2fa/admin/ip_management.php', 1);
+$head[$h][1] = $langs->trans('IPManagement');
+$head[$h][2] = 'ipmanagement';
+$h++;
+
 print dol_get_fiche_head($head, 'settings', '', -1, 'fa-shield-alt');
 
 // Get statistics
