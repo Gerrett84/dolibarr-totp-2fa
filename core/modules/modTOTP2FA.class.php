@@ -119,8 +119,23 @@ class modTOTP2FA extends DolibarrModules
         $this->rights[$r][4] = 'admin';
         $this->rights[$r][5] = 'write';
 
-        // Menu entries - none needed, config accessible via module setup gear icon
+        // Menu entries - only visible when in Setup > Admin Tools area
         $this->menu = array();
+        $r = 0;
+
+        $r++;
+        $this->menu[$r] = array(
+            'fk_menu' => 'fk_mainmenu=home,fk_leftmenu=admintools',
+            'type' => 'left',
+            'titre' => 'TOTP2FASetup',
+            'url' => '/custom/totp2fa/admin/setup.php?mainmenu=home&leftmenu=admintools',
+            'langs' => 'totp2fa@totp2fa',
+            'position' => 450,
+            'enabled' => 'isModEnabled("totp2fa") && preg_match(\'/^(admintools|all)/\', $leftmenu)',
+            'perms' => '$user->admin',
+            'target' => '',
+            'user' => 0,
+        );
     }
 
     /**
