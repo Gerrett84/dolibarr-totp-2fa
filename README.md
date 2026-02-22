@@ -19,6 +19,8 @@ Add enterprise-grade Two-Factor Authentication (2FA) to your Dolibarr installati
 - **User Self-Service** - Each user manages their own 2FA settings
 - **Backup Codes** - Emergency access codes for recovery
 - **Trusted Devices** - Skip 2FA on trusted devices for configurable days (1-90)
+- **IP Blocking** - Block suspicious IPs manually, view login attempts and statistics
+- **Login Logging** - Track all login attempts (success, failed 2FA, blocked)
 - **Optional Enforcement** - Admin can make 2FA mandatory for specific users or groups
 - **Secure** - Industry-standard TOTP with 30-second rotating codes
 
@@ -84,7 +86,15 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.3 (Current Release) ✅
+### v1.4 (Current Release) ✅
+- [x] **IP Blocking** - Manually block suspicious IP addresses
+- [x] **Login Attempt Logging** - Track all login attempts with IP, browser, timestamp
+- [x] **IP Management Admin Page** - Three tabs: Login Attempts, IP Blacklist, Statistics
+- [x] **Top Failing IPs** - View and block top failing IPs with one click
+- [x] **Purge Old Logs** - Clean up old login attempt records
+- [x] Menu only visible in Setup section (not permanently)
+
+### v1.3 ✅
 - [x] **Trust Renewal** - Enter code on trusted device to renew trust period
 - [x] Show remaining trust days on login page
 - [x] Skip button for trusted devices (proceed without code)
@@ -185,11 +195,11 @@ Before upgrading, always backup your database:
 
 ```bash
 # Backup 2FA tables
-mysqldump -u root -p dolibarr llx_totp2fa_user_settings llx_totp2fa_backup_codes llx_totp2fa_activity_log llx_totp2fa_trusted_devices > totp2fa_backup.sql
+mysqldump -u root -p dolibarr llx_totp2fa_user_settings llx_totp2fa_backup_codes llx_totp2fa_activity_log llx_totp2fa_trusted_devices llx_totp2fa_login_attempts llx_totp2fa_ip_blacklist > totp2fa_backup.sql
 ```
 
 -----
 
-**Current Version:** 1.3.0
+**Current Version:** 1.4.0
 **Status:** Stable
 **Compatibility:** Dolibarr 22.0+
