@@ -200,12 +200,12 @@ if ($user2fa->is_enabled && $action != 'backup_codes') {
     print '<div class="tabsAction">';
 
     // Regenerate secret
-    print '<a class="butAction" href="'.$_SERVER["PHP_SELF"].'?action=regenerate&id='.$object->id.'">';
+    print '<a class="butAction" href="'.$_SERVER["PHP_SELF"].'?action=regenerate&id='.$object->id.'&token='.newToken().'">';
     print $langs->trans("RegenerateSecret");
     print '</a>';
 
     // Disable 2FA
-    print '<a class="butActionDelete" href="'.$_SERVER["PHP_SELF"].'?action=disable&id='.$object->id.'">';
+    print '<a class="butActionDelete" href="'.$_SERVER["PHP_SELF"].'?action=disable&id='.$object->id.'&token='.newToken().'">';
     print $langs->trans("Disable2FA");
     print '</a>';
 
@@ -325,11 +325,11 @@ print dol_get_fiche_end();
 
 // Confirmation dialogs
 if ($action == 'disable') {
-    print $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id, $langs->trans("Disable2FA"), $langs->trans("ConfirmDisable2FAForUser"), 'confirm_disable', '', 0, 1);
+    print $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id.'&token='.newToken(), $langs->trans("Disable2FA"), $langs->trans("ConfirmDisable2FAForUser"), 'confirm_disable', '', 0, 1);
 }
 
 if ($action == 'regenerate') {
-    print $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id, $langs->trans("RegenerateSecret"), $langs->trans("ConfirmRegenerate"), 'confirm_regenerate', '', 0, 1);
+    print $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id.'&token='.newToken(), $langs->trans("RegenerateSecret"), $langs->trans("ConfirmRegenerate"), 'confirm_regenerate', '', 0, 1);
 }
 
 llxFooter();
