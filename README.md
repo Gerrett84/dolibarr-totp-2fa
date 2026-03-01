@@ -87,7 +87,10 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.4 (Current Release) ✅
+### v1.4.1 (Current Release) ✅
+- [x] **Fix CSRF Token Error** - Disable/Regenerate buttons now work with `MAIN_SECURITY_CSRF_WITH_TOKEN=2` (fixes #4)
+
+### v1.4 ✅
 - [x] **IP Blocking** - Manually block suspicious IP addresses
 - [x] **Login Attempt Logging** - Track all login attempts with IP, browser, timestamp
 - [x] **IP Management Admin Page** - Three tabs: Login Attempts, IP Blacklist, Statistics
