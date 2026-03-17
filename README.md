@@ -2,7 +2,7 @@
 
 **Free & Open Source Two-Factor Authentication for Dolibarr**
 
-[![Dolibarr](https://img.shields.io/badge/Dolibarr-22.0%2B-blue.svg)](https://www.dolibarr.org)
+[![Dolibarr](https://img.shields.io/badge/Dolibarr-21.0%2B-blue.svg)](https://www.dolibarr.org)
 [![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://www.php.net)
 [![TOTP](https://img.shields.io/badge/RFC-6238-orange.svg)](https://tools.ietf.org/html/rfc6238)
@@ -22,6 +22,7 @@ Add enterprise-grade Two-Factor Authentication (2FA) to your Dolibarr installati
 - **IP Blocking** - Block suspicious IPs manually, view login attempts and statistics
 - **Login Logging** - Track all login attempts (success, failed 2FA, blocked)
 - **Optional Enforcement** - Admin can make 2FA mandatory for specific users or groups
+- **Multi-Company Support** - Works with Dolibarr Multi-Company module
 - **Secure** - Industry-standard TOTP with 30-second rotating codes
 
 -----
@@ -50,7 +51,7 @@ chmod -R 755 totp2fa
 # Setup → Modules → TOTP 2FA → Activate
 ```
 
-**Requirements:** Dolibarr 22.0+, PHP 7.4+, MySQL/MariaDB
+**Requirements:** Dolibarr 21.0+, PHP 7.4+, MySQL/MariaDB
 
 -----
 
@@ -58,7 +59,7 @@ chmod -R 755 totp2fa
 
 ### For Users
 
-1. Go to **User Profile → Security → Two-Factor Authentication**
+1. Go to **User Profile → 2FA**
 2. Click **Enable 2FA**
 3. Scan QR code with your authenticator app
 4. Enter verification code
@@ -86,16 +87,17 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.4.1 (Current Release) ✅
-- [x] **Fix CSRF Token Error** - Disable/Regenerate buttons now work with `MAIN_SECURITY_CSRF_WITH_TOKEN=2` (fixes #4)
-
-### v1.4 ✅
+### v1.4 (Current Release) ✅
 - [x] **IP Blocking** - Manually block suspicious IP addresses
 - [x] **Login Attempt Logging** - Track all login attempts with IP, browser, timestamp
 - [x] **IP Management Admin Page** - Three tabs: Login Attempts, IP Blacklist, Statistics
 - [x] **Top Failing IPs** - View and block top failing IPs with one click
 - [x] **Purge Old Logs** - Clean up old login attempt records
 - [x] Menu only visible in Setup section (not permanently)
+
+### v1.3.1 ✅
+- [x] **Dolibarr 21 Support** - Lowered minimum version requirement
+- [x] **Multi-Company Support** - Confirmed working with Multi-Company module (thanks @fefed22!)
 
 ### v1.3 ✅
 - [x] **Trust Renewal** - Enter code on trusted device to renew trust period
@@ -185,6 +187,7 @@ GPL v3 or higher - Same as Dolibarr
 - Dolibarr Community
 - RFC 6238 TOTP Standard
 - Open Source Security Community
+- [@fefed22](https://github.com/fefed22) - Multi-Company & Dolibarr 21 compatibility testing
 
 -----
 
@@ -205,4 +208,4 @@ mysqldump -u root -p dolibarr llx_totp2fa_user_settings llx_totp2fa_backup_codes
 
 **Current Version:** 1.4.0
 **Status:** Stable
-**Compatibility:** Dolibarr 22.0+
+**Compatibility:** Dolibarr 21.0+
