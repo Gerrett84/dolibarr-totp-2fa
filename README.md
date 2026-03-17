@@ -59,7 +59,7 @@ chmod -R 755 totp2fa
 
 ### For Users
 
-1. Go to **User Profile → Security → Two-Factor Authentication**
+1. Go to **User Profile → 2FA**
 2. Click **Enable 2FA**
 3. Scan QR code with your authenticator app
 4. Enter verification code
