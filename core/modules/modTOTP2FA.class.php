@@ -104,7 +104,7 @@ class modTOTP2FA extends DolibarrModules
 
         // Tabs - Add 2FA tab to user profile
         $this->tabs = array(
-            'user:+2fa:TwoFactorAuth:totp2fa@totp2fa:$conf->totp2fa->enabled:/custom/totp2fa/user_setup.php?id=__ID__'
+            "user:+2fa:TwoFactorAuth:totp2fa@totp2fa:isModEnabled('totp2fa'):/custom/totp2fa/user_setup.php?id=__ID__"
         );
 
         // Permissions
