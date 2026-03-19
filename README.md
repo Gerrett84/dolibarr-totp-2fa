@@ -87,7 +87,10 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.4.1 (Current Release) ✅
+### v1.4.2 (Current Release) ✅
+- [x] **Fix Dolibarr v23 Compatibility** - 2FA tab now correctly appears in user profile on Dolibarr v23+ (`$conf->totp2fa->enabled` replaced with `isModEnabled()`)
+
+### v1.4.1 ✅
 - [x] **Fix CSRF Token Error** - Disable/Regenerate buttons now work with `MAIN_SECURITY_CSRF_WITH_TOKEN=2` (fixes #4)
 
 ### v1.4 ✅
@@ -209,6 +212,6 @@ mysqldump -u root -p dolibarr llx_totp2fa_user_settings llx_totp2fa_backup_codes
 
 -----
 
-**Current Version:** 1.4.0
+**Current Version:** 1.4.2
 **Status:** Stable
 **Compatibility:** Dolibarr 21.0+
