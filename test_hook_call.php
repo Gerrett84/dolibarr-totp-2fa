@@ -9,6 +9,11 @@ define('NOREQUIREAJAX', 1);
 
 require '../../main.inc.php';
 
+if (!$user->admin) {
+    header('HTTP/1.1 403 Forbidden');
+    die('Access denied');
+}
+
 header('Content-Type: text/plain; charset=utf-8');
 
 echo "========================================\n";
