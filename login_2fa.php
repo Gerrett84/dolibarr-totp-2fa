@@ -81,8 +81,23 @@ if ($resqlConf) {
 function getDeviceHash() {
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
     $acceptLang = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
-    // Create a hash based on browser fingerprint
-    return hash('sha256', $userAgent . '|' . $acceptLang);
+
+    // Ensure a stable random device ID cookie exists (persists across sessions)
+    $cookieName = 'totp2fa_did';
+    if (empty($_COOKIE[$cookieName])) {
+        $deviceId = bin2hex(random_bytes(16));
+        setcookie($cookieName, $deviceId, [
+            'expires'  => time() + (365 * 24 * 3600),
+            'path'     => '/',
+            'secure'   => !empty($_SERVER['HTTPS']),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    } else {
+        $deviceId = $_COOKIE[$cookieName];
+    }
+
+    return hash('sha256', $userAgent . '|' . $acceptLang . '|' . $deviceId);
 }
 
 // Check if current device is trusted - returns remaining days or 0 if not trusted
