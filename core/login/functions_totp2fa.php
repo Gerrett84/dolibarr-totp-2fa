@@ -64,11 +64,10 @@ function check_user_password_totp2fa($usertotest, $passwordtotest, $entitytotest
                 $_SESSION['totp2fa_pending_login'] = 1;
                 $_SESSION['totp2fa_user_id'] = $user_id;
 
-                // Store intended URL
-                if (!empty($_POST['urlfrom'])) {
-                    $_SESSION['totp2fa_urltogo'] = $_POST['urlfrom'];
-                } elseif (!empty($_GET['urlfrom'])) {
-                    $_SESSION['totp2fa_urltogo'] = $_GET['urlfrom'];
+                // Store intended URL - only allow relative paths (no external redirects)
+                $rawUrl = !empty($_POST['urlfrom']) ? $_POST['urlfrom'] : (!empty($_GET['urlfrom']) ? $_GET['urlfrom'] : '');
+                if ($rawUrl && strpos($rawUrl, '://') === false && strpos($rawUrl, '//') !== 0 && strpos($rawUrl, '/') === 0) {
+                    $_SESSION['totp2fa_urltogo'] = $rawUrl;
                 }
 
                 // Redirect to 2FA verification page
