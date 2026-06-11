@@ -258,7 +258,7 @@ if ($tab == 'attempts') {
             if (strlen($browser) > 50) {
                 $browser = substr($browser, 0, 50).'...';
             }
-            print '<td title="'.dol_escape_htmltag($obj->user_agent).'">'.$browser.'</td>';
+            print '<td title="'.dol_escape_htmltag($obj->user_agent).'">'.dol_escape_htmltag($browser).'</td>';
 
             // Actions
             print '<td>';
@@ -453,8 +453,8 @@ if ($tab == 'stats') {
     if ($resql && $db->num_rows($resql) > 0) {
         while ($obj = $db->fetch_object($resql)) {
             print '<tr class="oddeven">';
-            print '<td><strong>'.$obj->ip_address.'</strong></td>';
-            print '<td><span class="badge badge-status8">'.$obj->cnt.'</span></td>';
+            print '<td><strong>'.dol_escape_htmltag($obj->ip_address).'</strong></td>';
+            print '<td><span class="badge badge-status8">'.(int)$obj->cnt.'</span></td>';
             print '<td>';
             print '<a class="button buttonDelete" href="'.$_SERVER["PHP_SELF"].'?action=block&ip='.urlencode($obj->ip_address).'&reason='.urlencode($langs->trans("MultipleFailedAttempts")).'&tab=blacklist&token='.newToken().'" title="'.$langs->trans("BlockIP").'">';
             print '<span class="fa fa-ban"></span> '.$langs->trans("Block");

@@ -87,7 +87,14 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.4 (Current Release) ✅
+### v1.4.3 (Current Release) ✅
+- [x] **Security: Remaining XSS fixes** – `ip_address` and `user_agent` values in Stats tab and Login Attempts tab now correctly escaped
+- [x] **Security: Trusted-device fingerprint** – Device ID cookie (`totp2fa_did`) added as unforgeable component of device hash (HttpOnly, Secure, SameSite=Lax)
+- [x] **Security: Open redirect prevention** – `urlfrom` parameter only accepts relative paths starting with `/`
+- [x] **Security: Debug pages access-restricted** – `debug_hooks.php` and `test_hook_call.php` now require admin login (403 for non-admins)
+- [x] **Dolibarr v23 compatibility** – `isModEnabled()` used instead of deprecated `$conf->totp2fa->enabled`
+
+### v1.4 ✅
 - [x] **IP Blocking** - Manually block suspicious IP addresses
 - [x] **Login Attempt Logging** - Track all login attempts with IP, browser, timestamp
 - [x] **IP Management Admin Page** - Three tabs: Login Attempts, IP Blacklist, Statistics
