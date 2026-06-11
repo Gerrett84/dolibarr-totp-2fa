@@ -228,10 +228,10 @@ if ($tab == 'attempts') {
             print '<td>'.dol_print_date($db->jdate($obj->datec), 'dayhour').'</td>';
 
             // IP
-            print '<td><strong>'.$obj->ip_address.'</strong></td>';
+            print '<td><strong>'.dol_escape_htmltag($obj->ip_address).'</strong></td>';
 
             // Username
-            print '<td>'.$obj->username.'</td>';
+            print '<td>'.dol_escape_htmltag($obj->username).'</td>';
 
             // Type with badge
             print '<td>';
@@ -249,7 +249,7 @@ if ($tab == 'attempts') {
                     print '<span class="badge badge-status8">'.$langs->trans("BlockedAttempt").'</span>';
                     break;
                 default:
-                    print $obj->attempt_type;
+                    print dol_escape_htmltag($obj->attempt_type);
             }
             print '</td>';
 
@@ -336,13 +336,13 @@ if ($tab == 'blacklist') {
             print '<tr class="oddeven">';
 
             // IP
-            print '<td><strong>'.$obj->ip_address.'</strong></td>';
+            print '<td><strong>'.dol_escape_htmltag($obj->ip_address).'</strong></td>';
 
             // Reason
-            print '<td>'.$obj->reason.'</td>';
+            print '<td>'.dol_escape_htmltag($obj->reason).'</td>';
 
             // Blocked by
-            print '<td>'.$obj->blocked_by_login.'</td>';
+            print '<td>'.dol_escape_htmltag($obj->blocked_by_login).'</td>';
 
             // Date blocked
             print '<td>'.dol_print_date($db->jdate($obj->datec), 'dayhour').'</td>';
