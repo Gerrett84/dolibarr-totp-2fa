@@ -87,8 +87,15 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.4.2 (Current Release) ✅
-- [x] **Fix Dolibarr v23 Compatibility** - 2FA tab now correctly appears in user profile on Dolibarr v23+ (`$conf->totp2fa->enabled` replaced with `isModEnabled()`)
+### v1.4.3 (Current Release) ✅
+- [x] **Security: Remaining XSS fixes** – `ip_address` and `user_agent` values in Stats tab and Login Attempts tab now correctly escaped
+- [x] **Security: Trusted-device fingerprint** – Device ID cookie (`totp2fa_did`) added as unforgeable component of device hash (HttpOnly, Secure, SameSite=Lax)
+- [x] **Security: Open redirect prevention** – `urlfrom` parameter only accepts relative paths starting with `/`
+- [x] **Security: Debug pages access-restricted** – `debug_hooks.php` and `test_hook_call.php` now require admin login (403 for non-admins)
+- [x] **Dolibarr v23 compatibility** – `isModEnabled()` used instead of deprecated `$conf->totp2fa->enabled`
+
+### v1.4.2 ✅
+- [x] **Fix Dolibarr v23 Compatibility** - 2FA tab now correctly appears in user profile on Dolibarr v23+
 
 ### v1.4.1 ✅
 - [x] **Fix CSRF Token Error** - Disable/Regenerate buttons now work with `MAIN_SECURITY_CSRF_WITH_TOKEN=2` (fixes #4)
