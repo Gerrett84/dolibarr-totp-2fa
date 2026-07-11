@@ -87,7 +87,10 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.4.3 (Current Release) ✅
+### v1.4.4 (Current Release) ✅
+- [x] **Fix: 2FA-Feld erscheint nicht auf HTTPS-Installationen** – Login-Injektion von jQuery `.clone()` auf Vanilla-JS `createElement` umgeschrieben. Der Clone kopierte stillschweigend den eingebetteten `<script nonce="...">` des Passwort-Toggle-Handlers mit; auf HTTPS-Seiten schlug die Injektion damit lautlos fehl. Das Feld erscheint nun immer korrekt.
+
+### v1.4.3 ✅
 - [x] **Security: Remaining XSS fixes** – `ip_address` and `user_agent` values in Stats tab and Login Attempts tab now correctly escaped
 - [x] **Security: Trusted-device fingerprint** – Device ID cookie (`totp2fa_did`) added as unforgeable component of device hash (HttpOnly, Secure, SameSite=Lax)
 - [x] **Security: Open redirect prevention** – `urlfrom` parameter only accepts relative paths starting with `/`
@@ -213,6 +216,6 @@ mysqldump -u root -p dolibarr llx_totp2fa_user_settings llx_totp2fa_backup_codes
 
 -----
 
-**Current Version:** 1.4.0
+**Current Version:** 1.4.4
 **Status:** Stable
 **Compatibility:** Dolibarr 21.0+
