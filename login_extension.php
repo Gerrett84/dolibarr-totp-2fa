@@ -27,41 +27,51 @@ if (empty($conf->totp2fa->enabled)) {
 
 $langs->load("totp2fa@totp2fa");
 
-// Simple approach: Always show 2FA field, server validates if needed
+$nonce = function_exists('getNonce') ? htmlspecialchars(getNonce(), ENT_QUOTES, 'UTF-8') : '';
 ?>
 <!-- TOTP 2FA Login Extension -->
-<script type="text/javascript">
-jQuery(document).ready(function() {
-    // Add 2FA field after password field
-    var passwordRow = jQuery('input[name="password"]').closest('.trinputlogin');
+<script<?php echo $nonce ? ' nonce="'.$nonce.'"' : ''; ?> type="text/javascript">
+(function() {
+    function addTotpField() {
+        if (document.getElementById('totp2fa_row')) return;
 
-    if (passwordRow.length > 0) {
-        // Clone the password row and modify it for 2FA
-        var totpRow = passwordRow.clone();
+        var passwordInput = document.querySelector('input[name="password"]');
+        if (!passwordInput) return;
+        var passwordRow = passwordInput.closest('.trinputlogin');
+        if (!passwordRow) return;
 
-        // Update the cloned row
-        totpRow.attr('id', 'totp2fa_row');
-        totpRow.find('#tdpasswordlogin').removeAttr('id');
-        totpRow.find('#togglepassword').remove();
+        var totpDiv = document.createElement('div');
+        totpDiv.id = 'totp2fa_row';
+        totpDiv.className = 'trinputlogin';
 
-        // Change icon
-        totpRow.find('.fa').removeClass('fa-key').addClass('fa-shield-alt');
+        var inner = document.createElement('div');
+        inner.className = 'tagtd nowraponall center valignmiddle tdinputlogin';
 
-        // Change input
-        var input = totpRow.find('input');
-        input.attr({
-            'type': 'text',
-            'id': 'totp_code',
-            'name': 'totp_code',
-            'placeholder': '2FA Code',
-            'maxlength': '10',
-            'tabindex': '3',
-            'value': ''
-        });
-        input.removeClass('input-icon-password').addClass('input-icon-user');
+        var icon = document.createElement('span');
+        icon.className = 'fa fa-shield-alt';
 
-        passwordRow.after(totpRow);
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'totp_code';
+        input.name = 'totp_code';
+        input.placeholder = '2FA Code';
+        input.maxLength = 10;
+        input.tabIndex = 3;
+        input.value = '';
+        input.className = 'flat input-icon-user minwidth150 input-nobottom';
+
+        inner.appendChild(icon);
+        inner.appendChild(input);
+        totpDiv.appendChild(inner);
+
+        passwordRow.parentNode.insertBefore(totpDiv, passwordRow.nextSibling);
     }
-});
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', addTotpField);
+    } else {
+        addTotpField();
+    }
+})();
 </script>
 <?php
