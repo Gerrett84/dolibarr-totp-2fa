@@ -87,7 +87,13 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.4.4 (Current Release) ✅
+### v1.4.5 (Current Release) ✅
+- [x] **Fix: 2FA field misaligned on the login form** – The input sat shifted to the left and rendered narrower than the username and password fields above it, on both mobile and desktop. Dolibarr's theme styles the login inputs *by id* (`.login_table input#username, input#password, input#securitycode`) rather than by class, so padding, margins and font-size were never inherited by a field with a different id. The theme's declarations are now mirrored onto `#totp_code`, and the 2FA row is cloned from the username row so it picks up every class and attribute the theme relies on.
+- [x] **Fix: shield icon clipped** – `fa-shield-alt` is a wider glyph than `fa-user`/`fa-key`; it is now centred inside the theme's 14px icon box and allowed to render past it instead of being cut off on the right.
+
+> **Note:** The mirrored CSS in `login_extension.php` reproduces values from `theme/eldy/global.inc.php`. If a future Dolibarr release changes the login field spacing, that block needs to be updated to match.
+
+### v1.4.4 ✅
 - [x] **Fix: 2FA-Feld erscheint nicht auf HTTPS-Installationen** – Login-Injektion von jQuery `.clone()` auf Vanilla-JS `createElement` umgeschrieben. Der Clone kopierte stillschweigend den eingebetteten `<script nonce="...">` des Passwort-Toggle-Handlers mit; auf HTTPS-Seiten schlug die Injektion damit lautlos fehl. Das Feld erscheint nun immer korrekt.
 
 ### v1.4.3 ✅
@@ -216,6 +222,6 @@ mysqldump -u root -p dolibarr llx_totp2fa_user_settings llx_totp2fa_backup_codes
 
 -----
 
-**Current Version:** 1.4.4
+**Current Version:** 1.4.5
 **Status:** Stable
 **Compatibility:** Dolibarr 21.0+
