@@ -79,7 +79,7 @@ class modTOTP2FA extends DolibarrModules
         $this->conflictwith = array(); // List of module class names this module conflicts with
         $this->langfiles = array("totp2fa@totp2fa");
         $this->phpmin = array(7, 4); // Minimum PHP version required
-        $this->need_dolibarr_version = array(22, 0); // Minimum Dolibarr version required
+        $this->need_dolibarr_version = array(21, 0); // Minimum Dolibarr version required
 
         // Constants
         $this->const = array();
