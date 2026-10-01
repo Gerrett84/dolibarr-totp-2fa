@@ -14,76 +14,51 @@
  */
 
 /**
- * Generate QR code image URL
+ * Render a QR code as inline SVG, generated locally with the TCPDF library
+ * bundled with Dolibarr. The data (TOTP secret) never leaves the server.
  *
- * This function uses an external QR code generation service
- * For production use, consider using a PHP library like endroid/qr-code
- *
- * @param string $data Data to encode in QR code
- * @param int $size Size of QR code in pixels (default 200)
- * @return string Data URL or image URL
+ * @param string $data Data to encode in the QR code
+ * @return string SVG markup, or empty string if the library is unavailable
  */
-function totp2fa_getQRCodeImageUrl($data, $size = 200)
+function totp2fa_getQRCodeSVG($data)
 {
-    // Option 1: Use quickchart.io (free, no API key required)
-    $url = 'https://quickchart.io/qr?text='.urlencode($data).'&size='.$size;
-    return $url;
+    $lib = DOL_DOCUMENT_ROOT.'/includes/tecnickcom/tcpdf/tcpdf_barcodes_2d.php';
+    if (!is_readable($lib)) {
+        return '';
+    }
+    require_once $lib;
+
+    $barcode = new TCPDF2DBarcode($data, 'QRCODE,M');
+    $svg = $barcode->getBarcodeSVGcode(5, 5, 'black');
+
+    return substr($svg, (int) strpos($svg, '<svg'));
 }
 
 /**
- * Generate QR code as inline SVG (using simple library-free approach)
- * This is a fallback method that generates a basic data URL
+ * Generate QR code HTML (inline SVG)
  *
- * @param string $data Data to encode
- * @return string HTML img tag with QR code
+ * @param string $data Data to encode in QR code
+ * @param int $size Size of QR code in pixels (default 200)
+ * @return string HTML
  */
 function totp2fa_getQRCodeHTML($data, $size = 200)
 {
     global $langs;
 
-    // Use external service for now
-    $url = totp2fa_getQRCodeImageUrl($data, $size);
+    $svg = totp2fa_getQRCodeSVG($data);
 
     $html = '<div class="totp2fa-qrcode-container" style="text-align: center; margin: 20px 0;">';
-    $html .= '<img src="'.$url.'" alt="QR Code" style="border: 2px solid #ddd; padding: 10px; background: white;" />';
-    $html .= '<p style="margin-top: 10px; font-size: 12px; color: #666;">';
-    $html .= $langs->trans('ScanQRCodeWithAuthApp');
-    $html .= '</p>';
+    if ($svg !== '') {
+        $html .= '<div style="display: inline-block; width: '.((int) $size).'px; max-width: 100%; border: 2px solid #ddd; padding: 10px; background: white; box-sizing: content-box;">';
+        $html .= preg_replace('/<svg width="(\d+)" height="(\d+)"/', '<svg width="100%" viewBox="0 0 $1 $2"', $svg, 1);
+        $html .= '</div>';
+        $html .= '<p style="margin-top: 10px; font-size: 12px; color: #666;">';
+        $html .= $langs->trans('ScanQRCodeWithAuthApp');
+        $html .= '</p>';
+    }
     $html .= '</div>';
 
     return $html;
-}
-
-/**
- * Generate QR code using PHP QR Code library if available
- * This requires the endroid/qr-code library to be installed via composer
- *
- * @param string $data Data to encode
- * @param int $size Size in pixels
- * @return string Base64 encoded PNG or external URL
- */
-function totp2fa_generateQRCodeImage($data, $size = 200)
-{
-    // Check if endroid/qr-code is available
-    if (class_exists('Endroid\QrCode\QrCode')) {
-        // Use library if available
-        require_once DOL_DOCUMENT_ROOT.'/includes/tecnickcom/tcpdf/tcpdf_barcodes_2d.php';
-
-        try {
-            $qrCode = new \Endroid\QrCode\QrCode($data);
-            $qrCode->setSize($size);
-            $qrCode->setMargin(10);
-
-            // Return base64 encoded PNG
-            return 'data:image/png;base64,'.base64_encode($qrCode->writeString());
-        } catch (Exception $e) {
-            // Fall back to external service
-            return totp2fa_getQRCodeImageUrl($data, $size);
-        }
-    }
-
-    // Fallback: Use external service
-    return totp2fa_getQRCodeImageUrl($data, $size);
 }
 
 /**

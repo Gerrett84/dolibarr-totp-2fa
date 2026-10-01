@@ -155,12 +155,13 @@ mysql -u dolibarr_user -p dolibarr_db < custom/totp2fa/sql/llx_totp2fa_backup_co
 ### QR Code Not Displaying
 
 **Causes:**
-- External QR code service (quickchart.io) is blocked by firewall
-- No internet connection
+- Dolibarr's bundled TCPDF library (`includes/tecnickcom/tcpdf/tcpdf_barcodes_2d.php`) is missing or unreadable
 
 **Solution:**
 - Use manual entry instead (secret is displayed below QR code)
-- Or configure firewall to allow quickchart.io
+- Check that the web server can read the TCPDF directory
+
+The QR code is generated locally; the secret is never sent to an external service.
 
 ### "Invalid Code" Error
 
