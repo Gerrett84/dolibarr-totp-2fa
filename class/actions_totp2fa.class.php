@@ -70,7 +70,7 @@ class ActionsTotp2fa
         global $conf, $user;
 
         // Skip if module not enabled
-        if (empty($conf->totp2fa->enabled)) {
+        if (!isModEnabled('totp2fa')) {
             return 0;
         }
 
@@ -100,7 +100,7 @@ class ActionsTotp2fa
         global $conf;
 
         // Only run if module is enabled
-        if (empty($conf->totp2fa->enabled)) {
+        if (!isModEnabled('totp2fa')) {
             return 0;
         }
 
@@ -127,7 +127,7 @@ class ActionsTotp2fa
         global $conf, $db, $langs;
 
         // Only run if module is enabled
-        if (empty($conf->totp2fa->enabled)) {
+        if (!isModEnabled('totp2fa')) {
             return 0;
         }
 

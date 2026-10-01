@@ -22,7 +22,7 @@ echo "========================================\n\n";
 
 // Check if module is enabled
 echo "1. MODULE STATUS:\n";
-echo "   totp2fa enabled: " . (empty($conf->totp2fa->enabled) ? "NO" : "YES") . "\n";
+echo "   totp2fa enabled: " . (!isModEnabled('totp2fa') ? "NO" : "YES") . "\n";
 echo "   Module constant: " . (defined('MAIN_MODULE_TOTP2FA') ? "DEFINED" : "NOT DEFINED") . "\n\n";
 
 // Check modules_parts

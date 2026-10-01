@@ -32,7 +32,7 @@ function check_user_password_totp2fa($usertotest, $passwordtotest, $entitytotest
     global $conf, $langs;
 
     // Skip if module not enabled
-    if (empty($conf->totp2fa) || empty($conf->totp2fa->enabled)) {
+    if (!isModEnabled('totp2fa')) {
         return false;
     }
 

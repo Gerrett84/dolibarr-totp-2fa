@@ -21,7 +21,7 @@
 global $conf, $db, $langs;
 
 // Only run if module is enabled
-if (empty($conf->totp2fa->enabled)) {
+if (!isModEnabled('totp2fa')) {
     return;
 }
 

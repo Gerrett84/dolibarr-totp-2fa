@@ -41,7 +41,7 @@ $form = new Form($db);
 $langs->loadLangs(array("users", "totp2fa@totp2fa"));
 
 // Security check - user must be logged in
-if (!$user->rights->user->self->creer && !$user->admin) {
+if (!$user->hasRight('user', 'self', 'creer') && !$user->admin) {
     accessforbidden();
 }
 
@@ -166,7 +166,7 @@ print dol_get_fiche_head($head, '2fa', $langs->trans("User"), -1, 'user');
 // User card
 $linkback = '<a href="'.DOL_URL_ROOT.'/user/list.php?restore_lastsearch_values=1">'.$langs->trans("BackToList").'</a>';
 
-dol_banner_tab($object, 'id', $linkback, $user->rights->user->user->lire || $user->admin);
+dol_banner_tab($object, 'id', $linkback, $user->hasRight('user', 'user', 'lire') || $user->admin);
 
 print '<div class="fichecenter">';
 print '<div class="underbanner clearboth"></div>';

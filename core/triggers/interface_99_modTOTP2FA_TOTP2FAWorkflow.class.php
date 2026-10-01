@@ -81,7 +81,7 @@ class InterfaceTOTP2FAWorkflow extends DolibarrTriggers
         $ret = 0;
 
         // Do nothing if module is not enabled
-        if (empty($conf->totp2fa) || empty($conf->totp2fa->enabled)) {
+        if (!isModEnabled('totp2fa')) {
             return 0;
         }
 
