@@ -78,9 +78,19 @@ class User2FA extends CommonObject
     private $totp;
 
     /**
-     * @var string Encryption key
+     * @var string|null Binary key for the current (v2) secret format, null if no key configured yet
      */
     private $encryptionKey;
+
+    /**
+     * @var string Key derived from DB credentials, used by the legacy secret format
+     */
+    private $legacyKey;
+
+    /**
+     * @var string|null Raw TOTP2FA_ENCRYPTION_KEY constant, tried as alternative legacy key
+     */
+    private $legacyKeyAlt;
 
     /**
      * Constructor
@@ -92,15 +102,105 @@ class User2FA extends CommonObject
         $this->db = $db;
         $this->totp = new TOTP();
 
-        // Get encryption key from config (or generate if not exists)
         global $conf;
-        if (!empty($conf->global->TOTP2FA_ENCRYPTION_KEY)) {
-            $this->encryptionKey = $conf->global->TOTP2FA_ENCRYPTION_KEY;
-        } else {
-            // For now, use a simple key derivation from database config
-            // In production, this should be a proper key management system
-            $this->encryptionKey = hash('sha256', $conf->db->name.$conf->db->user, true);
+
+        // Legacy keys (CBC without MAC): key derived from DB credentials (default) and,
+        // for installs that set the constant manually before v2 secrets existed, the raw constant
+        $this->legacyKey = hash('sha256', $conf->db->name.$conf->db->user, true);
+        $this->legacyKeyAlt = !empty($conf->global->TOTP2FA_ENCRYPTION_KEY) ? (string) $conf->global->TOTP2FA_ENCRYPTION_KEY : null;
+
+        $configured = self::getConfiguredKey();
+        $this->encryptionKey = ($configured !== '') ? hash('sha256', $configured, true) : null;
+    }
+
+    /**
+     * Get the configured encryption key string.
+     * Priority: $dolibarr_main_totp2fa_encryption_key in conf.php (kept outside the database),
+     * then the TOTP2FA_ENCRYPTION_KEY constant.
+     *
+     * @return string Key or '' if none configured
+     */
+    public static function getConfiguredKey()
+    {
+        global $conf;
+
+        if (!empty($GLOBALS['dolibarr_main_totp2fa_encryption_key'])) {
+            return (string) $GLOBALS['dolibarr_main_totp2fa_encryption_key'];
         }
+        if (!empty($conf->global->TOTP2FA_ENCRYPTION_KEY)) {
+            return (string) $conf->global->TOTP2FA_ENCRYPTION_KEY;
+        }
+        return '';
+    }
+
+    /**
+     * Generate a random encryption key and store it, unless one is already configured.
+     *
+     * @param DoliDB $db Database handler
+     * @return bool True if a key exists afterwards
+     */
+    public static function provisionKey($db)
+    {
+        global $conf;
+
+        if (self::getConfiguredKey() !== '') {
+            return true;
+        }
+
+        require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
+        $key = bin2hex(random_bytes(32));
+        if (dolibarr_set_const($db, 'TOTP2FA_ENCRYPTION_KEY', $key, 'chaine', 0, 'TOTP2FA secret encryption key', $conf->entity) <= 0) {
+            return false;
+        }
+        $conf->global->TOTP2FA_ENCRYPTION_KEY = $key;
+        return true;
+    }
+
+    /**
+     * Re-encrypt all secrets stored in the legacy format with the configured key (idempotent).
+     * Legacy format: AES-256-CBC without authentication. New format: "v2:" + AES-256-GCM.
+     *
+     * @return array Counters: migrated, failed, already
+     */
+    public function migrateSecrets()
+    {
+        $result = array('migrated' => 0, 'failed' => 0, 'already' => 0);
+        if ($this->encryptionKey === null) {
+            return $result;
+        }
+
+        $sql = "SELECT rowid, secret FROM ".MAIN_DB_PREFIX.$this->table_element;
+        $resql = $this->db->query($sql);
+        if (!$resql) {
+            return $result;
+        }
+
+        $rows = array();
+        while ($obj = $this->db->fetch_object($resql)) {
+            $rows[] = $obj;
+        }
+
+        foreach ($rows as $obj) {
+            if (strpos($obj->secret, 'v2:') === 0) {
+                $result['already']++;
+                continue;
+            }
+            $plain = $this->decryptLegacy($obj->secret);
+            if (!is_string($plain) || !preg_match('/^[A-Z2-7]{16,}$/', $plain)) {
+                $result['failed']++;
+                continue;
+            }
+            $upd = "UPDATE ".MAIN_DB_PREFIX.$this->table_element;
+            $upd .= " SET secret = '".$this->db->escape($this->encryptSecret($plain))."'";
+            $upd .= " WHERE rowid = ".(int) $obj->rowid;
+            if ($this->db->query($upd)) {
+                $result['migrated']++;
+            } else {
+                $result['failed']++;
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -255,6 +355,10 @@ class User2FA extends CommonObject
 
         // Decrypt secret
         $secret = $this->decryptSecret($this->secret);
+        if (!is_string($secret) || $secret === '') {
+            $this->error = 'Secret could not be decrypted.';
+            return false;
+        }
 
         // Verify code
         $isValid = $this->totp->verifyCode($secret, $code);
@@ -326,9 +430,9 @@ class User2FA extends CommonObject
 
         for ($i = 0; $i < $count; $i++) {
             // Generate random 8-digit code
-            $code = str_pad(mt_rand(0, 99999999), 8, '0', STR_PAD_LEFT);
+            $code = str_pad((string) random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
             $code = substr($code, 0, 4).'-'.substr($code, 4, 4); // Format: 1234-5678
-            $codeHash = hash('sha256', $code);
+            $codeHash = $this->hashBackupCode($code);
 
             // Store in database
             $sql = "INSERT INTO ".MAIN_DB_PREFIX."totp2fa_backup_codes";
@@ -356,11 +460,15 @@ class User2FA extends CommonObject
      */
     public function verifyBackupCode($code)
     {
-        $codeHash = hash('sha256', $code);
+        $hashes = array($this->hashBackupCode($code));
+        $legacyHash = hash('sha256', $code);
+        if ($legacyHash !== $hashes[0]) {
+            $hashes[] = $legacyHash;
+        }
 
         $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."totp2fa_backup_codes";
         $sql .= " WHERE fk_user = ".(int)$this->fk_user;
-        $sql .= " AND code_hash = '".$this->db->escape($codeHash)."'";
+        $sql .= " AND code_hash IN ('".implode("','", array_map(array($this->db, 'escape'), $hashes))."')";
         $sql .= " AND is_used = 0";
 
         $resql = $this->db->query($sql);
@@ -383,35 +491,87 @@ class User2FA extends CommonObject
     }
 
     /**
-     * Encrypt secret using AES-256
+     * Hash a backup code. Keyed (HMAC) when an encryption key is configured, so a database
+     * leak alone does not allow brute-forcing the 8-digit codes.
      *
-     * @param string $plaintext Plain secret
-     * @return string Encrypted secret (base64)
+     * @param string $code Backup code
+     * @return string Hex hash
      */
-    private function encryptSecret($plaintext)
+    private function hashBackupCode($code)
     {
-        $ivLength = openssl_cipher_iv_length('aes-256-cbc');
-        $iv = openssl_random_pseudo_bytes($ivLength);
-        $encrypted = openssl_encrypt($plaintext, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
-
-        // Store IV with encrypted data
-        return base64_encode($iv.$encrypted);
+        if ($this->encryptionKey !== null) {
+            return hash_hmac('sha256', $code, $this->encryptionKey);
+        }
+        return hash('sha256', $code);
     }
 
     /**
-     * Decrypt secret
+     * Encrypt secret (AES-256-GCM, "v2:" prefix). Falls back to the legacy format only
+     * while no key is configured.
      *
-     * @param string $encrypted Encrypted secret (base64)
-     * @return string Plain secret
+     * @param string $plaintext Plain secret
+     * @return string Encrypted secret
+     */
+    private function encryptSecret($plaintext)
+    {
+        if ($this->encryptionKey === null) {
+            $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+            return base64_encode($iv.openssl_encrypt($plaintext, 'aes-256-cbc', $this->legacyKey, 0, $iv));
+        }
+
+        $iv = random_bytes(12);
+        $tag = '';
+        $ct = openssl_encrypt($plaintext, 'aes-256-gcm', $this->encryptionKey, OPENSSL_RAW_DATA, $iv, $tag);
+        return 'v2:'.base64_encode($iv.$tag.$ct);
+    }
+
+    /**
+     * Decrypt secret (v2 or legacy format)
+     *
+     * @param string $encrypted Encrypted secret
+     * @return string|false Plain secret, false on failure
      */
     private function decryptSecret($encrypted)
+    {
+        if (strpos($encrypted, 'v2:') === 0) {
+            if ($this->encryptionKey === null) {
+                return false;
+            }
+            $data = base64_decode(substr($encrypted, 3), true);
+            if ($data === false || strlen($data) < 29) {
+                return false;
+            }
+            return openssl_decrypt(substr($data, 28), 'aes-256-gcm', $this->encryptionKey, OPENSSL_RAW_DATA, substr($data, 0, 12), substr($data, 12, 16));
+        }
+
+        return $this->decryptLegacy($encrypted);
+    }
+
+    /**
+     * Decrypt a secret stored in the legacy format (AES-256-CBC, no authentication)
+     *
+     * @param string $encrypted Encrypted secret (base64)
+     * @return string|false Plain secret, false on failure
+     */
+    private function decryptLegacy($encrypted)
     {
         $data = base64_decode($encrypted);
         $ivLength = openssl_cipher_iv_length('aes-256-cbc');
         $iv = substr($data, 0, $ivLength);
-        $encrypted = substr($data, $ivLength);
+        $ct = substr($data, $ivLength);
 
-        return openssl_decrypt($encrypted, 'aes-256-cbc', $this->encryptionKey, 0, $iv);
+        $keys = array($this->legacyKey);
+        if ($this->legacyKeyAlt !== null) {
+            array_unshift($keys, $this->legacyKeyAlt);
+        }
+        foreach ($keys as $key) {
+            $plain = openssl_decrypt($ct, 'aes-256-cbc', $key, 0, $iv);
+            if (is_string($plain) && preg_match('/^[A-Z2-7]{16,}$/', $plain)) {
+                return $plain;
+            }
+        }
+
+        return false;
     }
 
     /**

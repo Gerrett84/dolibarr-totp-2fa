@@ -156,6 +156,13 @@ class modTOTP2FA extends DolibarrModules
             return -1;
         }
 
+        // Provision a random encryption key and migrate secrets stored in the legacy format
+        dol_include_once('/totp2fa/class/user2fa.class.php');
+        if (User2FA::provisionKey($this->db)) {
+            $tmp = new User2FA($this->db);
+            $tmp->migrateSecrets();
+        }
+
         // Create data directory
         $dir = DOL_DATA_ROOT.'/totp2fa';
         if (!is_dir($dir)) {

@@ -66,6 +66,18 @@ if ($action == 'set_TOTP2FA_ALLOW_SELF_DISABLE') {
     }
 }
 
+// Provision encryption key and migrate legacy secrets
+if ($action == 'migrate_encryption') {
+    if (User2FA::provisionKey($db)) {
+        $tmp = new User2FA($db);
+        $res = $tmp->migrateSecrets();
+        $msg = $langs->trans("EncryptionMigrated", $res['migrated'], $res['already'], $res['failed']);
+        setEventMessages($msg, null, $res['failed'] ? 'warnings' : 'mesgs');
+    } else {
+        setEventMessages($langs->trans("Error"), null, 'errors');
+    }
+}
+
 // Trusted Device settings
 if ($action == 'set_trusted_device') {
     $enabled = GETPOST('trusted_enabled', 'int');
@@ -193,6 +205,34 @@ print '</table>';
 print '</div>';
 
 print '<br>';
+
+// Encryption status
+$keyConfigured = (User2FA::getConfiguredKey() !== '');
+$legacyCount = 0;
+$resql = $db->query("SELECT COUNT(*) as cnt FROM ".MAIN_DB_PREFIX."totp2fa_user_settings WHERE secret NOT LIKE 'v2:%'");
+if ($resql) {
+    $legacyCount = (int) $db->fetch_object($resql)->cnt;
+}
+print '<div class="div-table-responsive-no-min">';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre"><td colspan="2">'.$langs->trans("EncryptionKeyTitle").'</td></tr>';
+print '<tr class="oddeven"><td>';
+if ($keyConfigured && $legacyCount == 0) {
+    print '<span class="badge badge-status4 badge-status">OK</span> '.$langs->trans("EncryptionKeyOk");
+} else {
+    print '<span class="badge badge-status8 badge-status">!</span> ';
+    print $keyConfigured ? $langs->trans("EncryptionLegacySecrets", $legacyCount) : $langs->trans("EncryptionKeyMissing");
+}
+print '</td><td class="right">';
+if (!$keyConfigured || $legacyCount > 0) {
+    print '<form method="post" action="'.$_SERVER["PHP_SELF"].'">';
+    print '<input type="hidden" name="token" value="'.newToken().'">';
+    print '<input type="hidden" name="action" value="migrate_encryption">';
+    print '<input type="submit" class="button" value="'.dol_escape_htmltag($langs->trans("EncryptionMigrateButton")).'">';
+    print '</form>';
+}
+print '</td></tr>';
+print '</table></div><br>';
 
 // Configuration options
 print '<div class="div-table-responsive-no-min">';
