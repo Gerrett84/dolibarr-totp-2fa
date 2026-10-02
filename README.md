@@ -87,7 +87,17 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.4.5 (Current Release) ✅
+### v1.5.0 (Current Release) ✅ – security audit
+- [x] **Security: Random encryption key + AES-256-GCM** – `TOTP2FA_ENCRYPTION_KEY` is generated on activation (or via the setup page button); existing secrets are migrated automatically. The key can alternatively be set as `$dolibarr_main_totp2fa_encryption_key` in `conf.php`. **Back up the key together with the database.**
+- [x] **Security: Backup codes** – generated with `random_int()`, stored as keyed HMAC; regenerating invalidates the old codes; failed attempts are rate-limited.
+- [x] **Security: Trusted devices** – now bound to a random per-user cookie token (`totp2fa_did_<id>`, HttpOnly, SameSite=Lax); only its hash is stored. The device is trusted only after code *and* password were accepted. A wrong code on a trusted device is no longer accepted. Devices are revoked when 2FA is disabled. *Existing trusted devices must verify once more.*
+- [x] **Security: Client IP** – `X-Forwarded-For`/`X-Real-IP` are only honoured when the peer is a trusted proxy (default: loopback/private networks, override with the constant `TOTP2FA_TRUSTED_PROXIES`, comma separated IPs/CIDRs). IP blacklist now supports real CIDR ranges (IPv4/IPv6) and validates input.
+- [x] **Security: Throttling and replay** – per IP+user (5 / 5 min) and per user (30 / 15 min) limits so one attacker cannot lock out a user; TOTP codes cannot be re-used within the drift window.
+- [x] **Logging** – wrong passwords are logged as `failed_password` (needs the module to be re-activated once to register the trigger).
+- [x] **REST API** – setup page shows and toggles the Dolibarr API password login (`/login`), which bypasses 2FA. Use personal API keys instead.
+- [x] **Cleanup** – removed unused `login_2fa.php`, `ajax/check_user_2fa.php` (user enumeration), debug pages, the dead login-mode file and the unenforced `TOTP2FA_ENFORCE_ALL` option.
+
+### v1.4.5 ✅
 - [x] **Fix: 2FA field misaligned on the login form** – The input sat shifted to the left and rendered narrower than the username and password fields above it, on both mobile and desktop. Dolibarr's theme styles the login inputs *by id* (`.login_table input#username, input#password, input#securitycode`) rather than by class, so padding, margins and font-size were never inherited by a field with a different id. The theme's declarations are now mirrored onto `#totp_code`, and the 2FA row is cloned from the username row so it picks up every class and attribute the theme relies on.
 - [x] **Fix: shield icon clipped** – `fa-shield-alt` is a wider glyph than `fa-user`/`fa-key`; it is now centred inside the theme's 14px icon box and allowed to render past it instead of being cut off on the right.
 
@@ -228,6 +238,6 @@ mysqldump -u root -p dolibarr llx_totp2fa_user_settings llx_totp2fa_backup_codes
 
 -----
 
-**Current Version:** 1.4.5
+**Current Version:** 1.5.0
 **Status:** Stable
 **Compatibility:** Dolibarr 21.0+

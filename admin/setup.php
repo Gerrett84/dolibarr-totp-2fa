@@ -48,19 +48,32 @@ $backtopage = GETPOST('backtopage', 'alpha');
  * Actions
  */
 
-if ($action == 'set_TOTP2FA_ENFORCE_ALL') {
-    $result = dolibarr_set_const($db, "TOTP2FA_ENFORCE_ALL", GETPOST('value', 'int'), 'chaine', 0, '', $conf->entity);
-    if ($result > 0) {
-        setEventMessages($langs->trans("SetupSaved"), null, 'mesgs');
+// Dolibarr >= 22 has the login endpoint opt-in (API_ENABLE_LOGIN_API), older versions opt-out (API_DISABLE_LOGIN_API)
+$apiLoginFile = DOL_DOCUMENT_ROOT.'/api/class/api_login.class.php';
+$apiLoginOptIn = is_readable($apiLoginFile) && strpos(file_get_contents($apiLoginFile), 'API_ENABLE_LOGIN_API') !== false;
+
+// Toggle the Dolibarr REST login endpoint (password-only, bypasses 2FA)
+if ($action == 'set_api_login') {
+    $disable = GETPOSTINT('disable') ? 1 : 0;
+    if ($disable) {
+        dolibarr_set_const($db, 'API_DISABLE_LOGIN_API', 1, 'chaine', 0, '', 0);
+        dolibarr_del_const($db, 'API_ENABLE_LOGIN_API', 0);
     } else {
-        setEventMessages($langs->trans("Error"), null, 'errors');
+        dolibarr_del_const($db, 'API_DISABLE_LOGIN_API', 0);
+        dolibarr_set_const($db, 'API_ENABLE_LOGIN_API', 1, 'chaine', 0, '', 0);
     }
+    setEventMessages($langs->trans("SetupSaved"), null, 'mesgs');
+    header("Location: ".$_SERVER["PHP_SELF"]);
+    exit;
 }
 
-if ($action == 'set_TOTP2FA_ALLOW_SELF_DISABLE') {
-    $result = dolibarr_set_const($db, "TOTP2FA_ENFORCE_ALL", GETPOST('value', 'int'), 'chaine', 0, '', $conf->entity);
-    if ($result > 0) {
-        setEventMessages($langs->trans("SetupSaved"), null, 'mesgs');
+// Provision encryption key and migrate legacy secrets
+if ($action == 'migrate_encryption') {
+    if (User2FA::provisionKey($db)) {
+        $tmp = new User2FA($db);
+        $res = $tmp->migrateSecrets();
+        $msg = $langs->trans("EncryptionMigrated", $res['migrated'], $res['already'], $res['failed']);
+        setEventMessages($msg, null, $res['failed'] ? 'warnings' : 'mesgs');
     } else {
         setEventMessages($langs->trans("Error"), null, 'errors');
     }
@@ -193,6 +206,57 @@ print '</table>';
 print '</div>';
 
 print '<br>';
+
+// Encryption status
+$keyConfigured = (User2FA::getConfiguredKey() !== '');
+$legacyCount = 0;
+$resql = $db->query("SELECT COUNT(*) as cnt FROM ".MAIN_DB_PREFIX."totp2fa_user_settings WHERE secret NOT LIKE 'v2:%'");
+if ($resql) {
+    $legacyCount = (int) $db->fetch_object($resql)->cnt;
+}
+print '<div class="div-table-responsive-no-min">';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre"><td colspan="2">'.$langs->trans("EncryptionKeyTitle").'</td></tr>';
+print '<tr class="oddeven"><td>';
+if ($keyConfigured && $legacyCount == 0) {
+    print '<span class="badge badge-status4 badge-status">OK</span> '.$langs->trans("EncryptionKeyOk");
+} else {
+    print '<span class="badge badge-status8 badge-status">!</span> ';
+    print $keyConfigured ? $langs->trans("EncryptionLegacySecrets", $legacyCount) : $langs->trans("EncryptionKeyMissing");
+}
+print '</td><td class="right">';
+if (!$keyConfigured || $legacyCount > 0) {
+    print '<form method="post" action="'.$_SERVER["PHP_SELF"].'">';
+    print '<input type="hidden" name="token" value="'.newToken().'">';
+    print '<input type="hidden" name="action" value="migrate_encryption">';
+    print '<input type="submit" class="button" value="'.dol_escape_htmltag($langs->trans("EncryptionMigrateButton")).'">';
+    print '</form>';
+}
+print '</td></tr>';
+print '</table></div><br>';
+
+// REST API login
+if (isModEnabled('api')) {
+    $apiLoginDisabled = $apiLoginOptIn ? !getDolGlobalInt('API_ENABLE_LOGIN_API') : (getDolGlobalInt('API_DISABLE_LOGIN_API') > 0);
+    print '<div class="div-table-responsive-no-min">';
+    print '<table class="noborder centpercent">';
+    print '<tr class="liste_titre"><td colspan="2">'.$langs->trans("ApiLoginTitle").'</td></tr>';
+    print '<tr class="oddeven"><td>';
+    if ($apiLoginDisabled) {
+        print '<span class="badge badge-status4 badge-status">OK</span> '.$langs->trans("ApiLoginDisabled");
+    } else {
+        print '<span class="badge badge-status8 badge-status">!</span> '.$langs->trans("ApiLoginEnabledWarning");
+    }
+    print '</td><td class="right">';
+    print '<form method="post" action="'.$_SERVER["PHP_SELF"].'">';
+    print '<input type="hidden" name="token" value="'.newToken().'">';
+    print '<input type="hidden" name="action" value="set_api_login">';
+    print '<input type="hidden" name="disable" value="'.($apiLoginDisabled ? 0 : 1).'">';
+    print '<input type="submit" class="button" value="'.dol_escape_htmltag($langs->trans($apiLoginDisabled ? "ApiLoginEnable" : "ApiLoginDisable")).'">';
+    print '</form>';
+    print '</td></tr>';
+    print '</table></div><br>';
+}
 
 // Configuration options
 print '<div class="div-table-responsive-no-min">';

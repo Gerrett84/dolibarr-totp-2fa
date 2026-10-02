@@ -61,17 +61,7 @@ class TOTP
     public function generateSecret($length = 20)
     {
         // Generate cryptographically secure random bytes
-        if (function_exists('random_bytes')) {
-            $secret = random_bytes($length);
-        } elseif (function_exists('openssl_random_pseudo_bytes')) {
-            $secret = openssl_random_pseudo_bytes($length);
-        } else {
-            // Fallback (less secure)
-            $secret = '';
-            for ($i = 0; $i < $length; $i++) {
-                $secret .= chr(mt_rand(0, 255));
-            }
-        }
+        $secret = random_bytes($length);
 
         return $this->base32Encode($secret);
     }

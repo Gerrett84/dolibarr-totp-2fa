@@ -60,7 +60,7 @@ class modTOTP2FA extends DolibarrModules
         $this->descriptionlong = "Add Two-Factor Authentication (2FA) to Dolibarr using Time-based One-Time Passwords (TOTP). Compatible with Google Authenticator, Apple Passwords, Microsoft Authenticator, Authy, and other RFC 6238 compliant apps.";
 
         // Version (semantic versioning: major.minor.patch)
-        $this->version = '1.4.5';
+        $this->version = '1.5.0';
 
         // Editor/Publisher
         $this->editor_name = 'Gerrett84';
@@ -90,10 +90,10 @@ class modTOTP2FA extends DolibarrModules
         // Array to add module hooks
         $this->module_parts = array(
             'hooks' => array(
-                'main',
                 'mainloginpage',  // For getLoginPageExtraOptions hook
                 'login'           // For beforeLoginAuthentication hook
-            )
+            ),
+            'triggers' => 1       // Trusted device registration and failed-password logging
         );
 
         // Boxes/Widgets
@@ -154,6 +154,13 @@ class modTOTP2FA extends DolibarrModules
         $result = $this->loadTables();
         if ($result < 0) {
             return -1;
+        }
+
+        // Provision a random encryption key and migrate secrets stored in the legacy format
+        dol_include_once('/totp2fa/class/user2fa.class.php');
+        if (User2FA::provisionKey($this->db)) {
+            $tmp = new User2FA($this->db);
+            $tmp->migrateSecrets();
         }
 
         // Create data directory
