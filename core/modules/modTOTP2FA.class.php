@@ -90,10 +90,10 @@ class modTOTP2FA extends DolibarrModules
         // Array to add module hooks
         $this->module_parts = array(
             'hooks' => array(
-                'main',
                 'mainloginpage',  // For getLoginPageExtraOptions hook
                 'login'           // For beforeLoginAuthentication hook
-            )
+            ),
+            'triggers' => 1       // Trusted device registration and failed-password logging
         );
 
         // Boxes/Widgets

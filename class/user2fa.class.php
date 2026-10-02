@@ -314,6 +314,8 @@ class User2FA extends CommonObject
      */
     public function delete($user)
     {
+        $this->revokeTrustedDevices();
+
         // Delete backup codes first
         $sql = "DELETE FROM ".MAIN_DB_PREFIX."totp2fa_backup_codes";
         $sql .= " WHERE fk_user = ".(int)$this->fk_user;
@@ -340,14 +342,12 @@ class User2FA extends CommonObject
      */
     public function verifyCode($code)
     {
-        // Check rate limiting (max 5 attempts per minute)
-        if ($this->failed_attempts >= 5 && (time() - $this->last_failed_attempt) < 60) {
-            $this->error = 'Too many failed attempts. Please wait before trying again.';
+        if ($this->isLocked()) {
             return false;
         }
 
-        // Check if code was already used (within current time window)
-        if ($this->last_used_code === $code && (time() - $this->last_used_time) < 30) {
+        // A code stays valid for the whole drift window, so reject re-use for that long
+        if ($this->last_used_code !== null && (string) $this->last_used_code === (string) $code && (time() - $this->last_used_time) < 120) {
             $this->error = 'This code has already been used.';
             $this->incrementFailedAttempts();
             return false;
@@ -379,6 +379,23 @@ class User2FA extends CommonObject
 
     /**
      * Increment failed attempts counter
+     *
+     * @return void
+     */
+    private function isLocked()
+    {
+        if ($this->failed_attempts >= 10) {
+            if ((time() - $this->last_failed_attempt) < 300) {
+                $this->error = 'Too many failed attempts. Please wait before trying again.';
+                return true;
+            }
+            $this->failed_attempts = 0;
+        }
+        return false;
+    }
+
+    /**
+     * Increment the failed attempts counter
      *
      * @return void
      */
@@ -428,6 +445,9 @@ class User2FA extends CommonObject
 
         $codes = array();
 
+        // Regenerating invalidates all previous codes
+        $this->db->query("DELETE FROM ".MAIN_DB_PREFIX."totp2fa_backup_codes WHERE fk_user = ".(int) $this->fk_user);
+
         for ($i = 0; $i < $count; $i++) {
             // Generate random 8-digit code
             $code = str_pad((string) random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
@@ -460,6 +480,10 @@ class User2FA extends CommonObject
      */
     public function verifyBackupCode($code)
     {
+        if ($this->isLocked()) {
+            return false;
+        }
+
         $hashes = array($this->hashBackupCode($code));
         $legacyHash = hash('sha256', $code);
         if ($legacyHash !== $hashes[0]) {
@@ -484,9 +508,14 @@ class User2FA extends CommonObject
             // Log backup code usage
             $this->logBackupCodeUsed();
 
+            $this->failed_attempts = 0;
+            $this->update(null);
+
             return true;
         }
 
+        $this->error = 'Invalid code.';
+        $this->incrementFailedAttempts();
         return false;
     }
 
@@ -603,6 +632,7 @@ class User2FA extends CommonObject
      */
     public function disable()
     {
+        $this->revokeTrustedDevices();
         $this->is_enabled = 0;
         $result = $this->update(null);
 
@@ -616,6 +646,16 @@ class User2FA extends CommonObject
         }
 
         return $result;
+    }
+
+    /**
+     * Revoke all trusted devices of this user
+     *
+     * @return void
+     */
+    private function revokeTrustedDevices()
+    {
+        $this->db->query("DELETE FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices WHERE fk_user = ".(int) $this->fk_user);
     }
 
     /**

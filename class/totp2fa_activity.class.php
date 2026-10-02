@@ -168,17 +168,8 @@ class Totp2faActivity
      */
     private function getClientIP()
     {
-        $ip = '';
-
-        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-            $ip = $_SERVER['HTTP_CLIENT_IP'];
-        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ip = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
-        } elseif (!empty($_SERVER['REMOTE_ADDR'])) {
-            $ip = $_SERVER['REMOTE_ADDR'];
-        }
-
-        return trim($ip);
+        dol_include_once('/totp2fa/lib/totp2fa.lib.php');
+        return totp2fa_get_client_ip();
     }
 
     /**

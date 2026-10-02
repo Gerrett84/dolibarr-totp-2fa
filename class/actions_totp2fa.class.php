@@ -14,6 +14,7 @@
  */
 
 dol_include_once('/totp2fa/class/user2fa.class.php');
+dol_include_once('/totp2fa/lib/totp2fa.lib.php');
 
 /**
  * TOTP 2FA Hook class
@@ -53,36 +54,6 @@ class ActionsTotp2fa
     public function __construct($db)
     {
         $this->db = $db;
-    }
-
-    /**
-     * Execute action on main page
-     * This is called on almost every page
-     *
-     * @param array         $parameters Parameters
-     * @param CommonObject  $object     Object
-     * @param string        $action     Action name
-     * @param HookManager   $hookmanager Hook manager
-     * @return int 0 if OK, <0 if KO
-     */
-    public function main($parameters, &$object, &$action, $hookmanager)
-    {
-        global $conf, $user;
-
-        // Skip if module not enabled
-        if (!isModEnabled('totp2fa')) {
-            return 0;
-        }
-
-        // Skip if already verified
-        if (!empty($_SESSION['totp2fa_verified']) && $_SESSION['totp2fa_verified'] == $user->id) {
-            return 0;
-        }
-
-        // Check if user has 2FA and redirect if needed
-        // This is now handled by the login page directly
-
-        return 0;
     }
 
     /**
@@ -167,60 +138,52 @@ class ActionsTotp2fa
         $result = $user2fa->fetch($user_id);
 
         if ($result > 0 && $user2fa->is_enabled) {
-            // User has 2FA enabled
-
-            // Check trusted device settings
             $trustedEnabled = getDolGlobalInt('TOTP2FA_TRUSTED_DEVICE_ENABLED', 0);
             $trustedDays = getDolGlobalInt('TOTP2FA_TRUSTED_DEVICE_DAYS', 30);
 
-            // Check if this device is trusted
-            $deviceIsTrusted = ($trustedEnabled && $this->isDeviceTrusted($db, $user_id));
-
-            if ($deviceIsTrusted && empty($totp_code)) {
-                // Device is trusted AND no code entered - skip 2FA (no renewal)
-                $_SESSION['totp2fa_verified'] = $user_id;
-                return 0; // Allow login without 2FA
-            }
-
-            if (!$deviceIsTrusted && empty($totp_code)) {
-                // Device NOT trusted and no code - block login
+            if (empty($totp_code)) {
+                // Trusted browser (random cookie token): no code needed
+                if ($trustedEnabled && totp2fa_is_device_trusted($db, $user_id)) {
+                    return 0;
+                }
                 $langs->load("totp2fa@totp2fa");
                 $this->errors[] = $langs->trans("PleaseEnterCode");
-                return -1; // Block login
+                return -1;
             }
 
-            // Code was provided - verify it (for both trusted and non-trusted devices)
-            $isValid = $user2fa->verifyCode($totp_code);
+            // Throttle per IP+user and per user overall
+            if ($this->isThrottled($usertotest, $ip_address)) {
+                $this->logLoginAttempt($ip_address, $usertotest, 'blocked');
+                $GLOBALS['totp2fa_attempt_logged'] = true;
+                $langs->load("totp2fa@totp2fa");
+                $this->errors[] = $langs->trans("TooManyAttempts");
+                return -1;
+            }
 
-            // If TOTP code is not valid, try backup code
-            if (!$isValid && strpos($totp_code, '-') !== false) {
+            // Backup codes contain a dash, TOTP codes are plain digits
+            if (strpos($totp_code, '-') !== false) {
                 $isValid = $user2fa->verifyBackupCode($totp_code);
+            } else {
+                $isValid = $user2fa->verifyCode($totp_code);
             }
 
             if (!$isValid) {
-                if ($deviceIsTrusted) {
-                    // Trusted device with wrong code - still allow login but don't renew
-                    $_SESSION['totp2fa_verified'] = $user_id;
-                    return 0;
-                }
-                // Invalid code for non-trusted device - log failed attempt
                 $user2fa->logLoginFailed();
                 $this->logLoginAttempt($ip_address, $usertotest, 'failed_2fa');
+                $GLOBALS['totp2fa_attempt_logged'] = true;
 
                 $langs->load("totp2fa@totp2fa");
                 $this->errors[] = $user2fa->error ? $user2fa->error : $langs->trans("InvalidCode");
-                return -1; // Block login
+                return -1;
             }
 
-            // Code is valid - log success, allow login and mark as verified
             $user2fa->logLoginSuccess();
             $this->logLoginAttempt($ip_address, $usertotest, 'success');
-            $_SESSION['totp2fa_verified'] = $user_id;
+            $GLOBALS['totp2fa_attempt_logged'] = true;
 
-            // Save/renew device as trusted if feature is enabled
-            // This renews the trust period for BOTH new and already-trusted devices
+            // The device is only trusted after the password was verified too (see trigger USER_LOGIN)
             if ($trustedEnabled) {
-                $this->trustDevice($db, $user_id, $trustedDays);
+                $_SESSION['totp2fa_trust_pending'] = (int) $user_id;
             }
         }
 
@@ -228,117 +191,60 @@ class ActionsTotp2fa
     }
 
     /**
-     * Generate device hash for trusted device feature
+     * Too many failed 2FA attempts from this IP for this user (5 / 5 min) or for this user overall (30 / 15 min)?
+     *
+     * @param string $username   Login
+     * @param string $ip_address Client IP
+     * @return bool
      */
-    private function getDeviceHash()
+    private function isThrottled($username, $ip_address)
     {
-        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
-        $acceptLang = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
-        return hash('sha256', $userAgent . '|' . $acceptLang);
-    }
+        $base = "SELECT COUNT(*) as cnt FROM ".MAIN_DB_PREFIX."totp2fa_login_attempts";
+        $base .= " WHERE username = '".$this->db->escape($username)."' AND attempt_type = 'failed_2fa'";
 
-    /**
-     * Check if current device is trusted
-     */
-    private function isDeviceTrusted($db, $user_id)
-    {
-        $deviceHash = $this->getDeviceHash();
-        $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
-        $sql .= " WHERE fk_user = ".(int)$user_id;
-        $sql .= " AND device_hash = '".$db->escape($deviceHash)."'";
-        $sql .= " AND trusted_until > NOW()";
-
-        $resql = $db->query($sql);
-        if ($resql && $db->num_rows($resql) > 0) {
-            // Update last use
-            $obj = $db->fetch_object($resql);
-            $sqlUpdate = "UPDATE ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
-            $sqlUpdate .= " SET date_last_use = NOW()";
-            $sqlUpdate .= " WHERE rowid = ".(int)$obj->rowid;
-            $db->query($sqlUpdate);
+        $res = $this->db->query($base." AND ip_address = '".$this->db->escape($ip_address)."' AND datec > DATE_SUB(NOW(), INTERVAL 5 MINUTE)");
+        if ($res && (int) $this->db->fetch_object($res)->cnt >= 5) {
+            return true;
+        }
+        $res = $this->db->query($base." AND datec > DATE_SUB(NOW(), INTERVAL 15 MINUTE)");
+        if ($res && (int) $this->db->fetch_object($res)->cnt >= 30) {
             return true;
         }
         return false;
     }
 
     /**
-     * Save device as trusted
-     */
-    private function trustDevice($db, $user_id, $days)
-    {
-        $deviceHash = $this->getDeviceHash();
-        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-
-        // Detect device name
-        $deviceName = 'Unbekanntes Gerät';
-        if (preg_match('/iPhone|iPad/', $userAgent)) {
-            $deviceName = 'Apple iOS';
-        } elseif (preg_match('/Android/', $userAgent)) {
-            $deviceName = 'Android';
-        } elseif (preg_match('/Windows/', $userAgent)) {
-            $deviceName = 'Windows PC';
-        } elseif (preg_match('/Macintosh/', $userAgent)) {
-            $deviceName = 'Mac';
-        } elseif (preg_match('/Linux/', $userAgent)) {
-            $deviceName = 'Linux';
-        }
-
-        // Delete existing entry for this device
-        $sql = "DELETE FROM ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
-        $sql .= " WHERE fk_user = ".(int)$user_id;
-        $sql .= " AND device_hash = '".$db->escape($deviceHash)."'";
-        $db->query($sql);
-
-        // Insert new entry
-        $sql = "INSERT INTO ".MAIN_DB_PREFIX."totp2fa_trusted_devices";
-        $sql .= " (fk_user, device_hash, device_name, ip_address, user_agent, trusted_until, date_creation)";
-        $sql .= " VALUES (";
-        $sql .= (int)$user_id.",";
-        $sql .= "'".$db->escape($deviceHash)."',";
-        $sql .= "'".$db->escape($deviceName)."',";
-        $sql .= "'".$db->escape($ip)."',";
-        $sql .= "'".$db->escape(substr($userAgent, 0, 500))."',";
-        $sql .= "DATE_ADD(NOW(), INTERVAL ".(int)$days." DAY),";
-        $sql .= "NOW()";
-        $sql .= ")";
-
-        return $db->query($sql);
-    }
-
-    /**
-     * Get client IP address (handles proxies)
+     * Get client IP address (proxy headers only honoured from trusted proxies)
+     *
+     * @return string
      */
     private function getClientIP()
     {
-        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-            return trim($ips[0]);
-        }
-        if (!empty($_SERVER['HTTP_X_REAL_IP'])) {
-            return $_SERVER['HTTP_X_REAL_IP'];
-        }
-        return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        return totp2fa_get_client_ip();
     }
 
     /**
-     * Check if IP is blocked
+     * Check if IP is blocked (exact match or CIDR range)
+     *
+     * @param string $ip_address IP
+     * @return bool
      */
     private function isIpBlocked($ip_address)
     {
         global $conf;
 
-        $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."totp2fa_ip_blacklist";
+        $sql = "SELECT ip_address FROM ".MAIN_DB_PREFIX."totp2fa_ip_blacklist";
         $sql .= " WHERE active = 1";
-        $sql .= " AND entity = ".(int)$conf->entity;
+        $sql .= " AND entity = ".(int) $conf->entity;
         $sql .= " AND (date_expiry IS NULL OR date_expiry > NOW())";
-        $sql .= " AND (ip_address = '".$this->db->escape($ip_address)."'";
-        // Also check for CIDR ranges (simple implementation for /24)
-        $sql .= " OR '".$this->db->escape($ip_address)."' LIKE CONCAT(SUBSTRING_INDEX(ip_address, '/', 1), '%'))";
 
         $resql = $this->db->query($sql);
-        if ($resql && $this->db->num_rows($resql) > 0) {
-            return true;
+        if ($resql) {
+            while ($obj = $this->db->fetch_object($resql)) {
+                if (totp2fa_ip_matches($ip_address, $obj->ip_address)) {
+                    return true;
+                }
+            }
         }
         return false;
     }
@@ -382,6 +288,12 @@ class ActionsTotp2fa
     public function blockIP($ip_address, $reason = '', $blocked_by = 0, $days = 0)
     {
         global $conf;
+
+        $ip_address = trim($ip_address);
+        if (!totp2fa_is_valid_ip_or_range($ip_address)) {
+            $this->error = 'Invalid IP address or range';
+            return -1;
+        }
 
         // Remove existing entry
         $sql = "DELETE FROM ".MAIN_DB_PREFIX."totp2fa_ip_blacklist";
