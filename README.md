@@ -88,6 +88,7 @@ chmod -R 755 totp2fa
 ## 📋 Roadmap
 
 ### Unreleased
+- [x] **Hardening of direct web access** – new `.htaccess` files: no directory listing, documentation/SQL/log files (`*.md`, `*.sql`, …) are not downloadable, and `sql/`, `class/`, `lib/`, `langs/` are not served over HTTP (requires `AllowOverride` for `.htaccess`, the Apache default for Dolibarr vhosts).
 - [x] **New permission „Manage own two-factor authentication“** (`totp2fa → self → manage`) – Users (or groups, e.g. technician accounts) can set up and change their own 2FA without the broader Dolibarr right to edit their own user record (`user → self → creer`, which remains accepted for compatibility). Disable and re-enable the module once to register the permission, then assign it to users/groups.
 
 ### v1.5.0 (Current Release) ✅ – security audit
