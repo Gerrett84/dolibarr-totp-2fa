@@ -87,6 +87,9 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
+### Unreleased
+- [x] **New permission „Manage own two-factor authentication“** (`totp2fa → self → manage`) – Users (or groups, e.g. technician accounts) can set up and change their own 2FA without the broader Dolibarr right to edit their own user record (`user → self → creer`, which remains accepted for compatibility). Disable and re-enable the module once to register the permission, then assign it to users/groups.
+
 ### v1.5.0 (Current Release) ✅ – security audit
 - [x] **Security: Random encryption key + AES-256-GCM** – `TOTP2FA_ENCRYPTION_KEY` is generated on activation (or via the setup page button); existing secrets are migrated automatically. The key can alternatively be set as `$dolibarr_main_totp2fa_encryption_key` in `conf.php`. **Back up the key together with the database.**
 - [x] **Security: Backup codes** – generated with `random_int()`, stored as keyed HMAC; regenerating invalidates the old codes; failed attempts are rate-limited.

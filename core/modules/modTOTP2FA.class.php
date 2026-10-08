@@ -119,6 +119,15 @@ class modTOTP2FA extends DolibarrModules
         $this->rights[$r][4] = 'admin';
         $this->rights[$r][5] = 'write';
 
+        // Own 2FA: lets users set up/change their own two-factor authentication without the
+        // broader Dolibarr right to edit their own user record ("user self creer")
+        $r++;
+        $this->rights[$r][0] = $this->numero + $r;
+        $this->rights[$r][1] = 'Manage own two-factor authentication';
+        $this->rights[$r][3] = 0;
+        $this->rights[$r][4] = 'self';
+        $this->rights[$r][5] = 'manage';
+
         // Menu entries - only visible when in Home > Setup area
         $this->menu = array();
         $r = 0;
