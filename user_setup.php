@@ -41,7 +41,7 @@ $form = new Form($db);
 $langs->loadLangs(array("users", "totp2fa@totp2fa"));
 
 // Security check - user must be logged in
-if (!$user->hasRight('user', 'self', 'creer') && !$user->admin) {
+if (!$user->hasRight('totp2fa', 'self', 'manage') && !$user->hasRight('user', 'self', 'creer') && !$user->admin) {
     accessforbidden();
 }
 

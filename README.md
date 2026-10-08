@@ -87,7 +87,12 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### v1.5.0 (Current Release) ✅ – security audit
+### v1.5.1 (Current Release) ✅
+- **Upgrade note:** disable and re-enable the module once after updating, so the new permission *Manage own two-factor authentication* is registered, then assign it to the users/groups that should be able to set up their own 2FA.
+- [x] **Hardening of direct web access** – new `.htaccess` files: no directory listing, documentation/SQL/log files (`*.md`, `*.sql`, …) are not downloadable, and `sql/`, `class/`, `lib/`, `langs/` are not served over HTTP (requires `AllowOverride` for `.htaccess`, the Apache default for Dolibarr vhosts).
+- [x] **New permission „Manage own two-factor authentication“** (`totp2fa → self → manage`) – Users (or groups, e.g. technician accounts) can set up and change their own 2FA without the broader Dolibarr right to edit their own user record (`user → self → creer`, which remains accepted for compatibility). Disable and re-enable the module once to register the permission, then assign it to users/groups.
+
+### v1.5.0 ✅ – security audit
 - [x] **Security: Random encryption key + AES-256-GCM** – `TOTP2FA_ENCRYPTION_KEY` is generated on activation (or via the setup page button); existing secrets are migrated automatically. The key can alternatively be set as `$dolibarr_main_totp2fa_encryption_key` in `conf.php`. **Back up the key together with the database.**
 - [x] **Security: Backup codes** – generated with `random_int()`, stored as keyed HMAC; regenerating invalidates the old codes; failed attempts are rate-limited.
 - [x] **Security: Trusted devices** – now bound to a random per-user cookie token (`totp2fa_did_<id>`, HttpOnly, SameSite=Lax); only its hash is stored. The device is trusted only after code *and* password were accepted. A wrong code on a trusted device is no longer accepted. Devices are revoked when 2FA is disabled. *Existing trusted devices must verify once more.*
@@ -238,6 +243,6 @@ mysqldump -u root -p dolibarr llx_totp2fa_user_settings llx_totp2fa_backup_codes
 
 -----
 
-**Current Version:** 1.5.0
+**Current Version:** 1.5.1
 **Status:** Stable
 **Compatibility:** Dolibarr 21.0+

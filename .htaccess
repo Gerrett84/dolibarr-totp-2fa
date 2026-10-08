@@ -1,0 +1,8 @@
+# TOTP 2FA - hardening for direct web access
+Options -Indexes
+
+<FilesMatch "(?i)\.(md|sql|lock|log|bak|orig|dist|ini|sh|zip|tgz|gz)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>

@@ -60,7 +60,7 @@ class modTOTP2FA extends DolibarrModules
         $this->descriptionlong = "Add Two-Factor Authentication (2FA) to Dolibarr using Time-based One-Time Passwords (TOTP). Compatible with Google Authenticator, Apple Passwords, Microsoft Authenticator, Authy, and other RFC 6238 compliant apps.";
 
         // Version (semantic versioning: major.minor.patch)
-        $this->version = '1.5.0';
+        $this->version = '1.5.1';
 
         // Editor/Publisher
         $this->editor_name = 'Gerrett84';
@@ -118,6 +118,15 @@ class modTOTP2FA extends DolibarrModules
         $this->rights[$r][3] = 0;
         $this->rights[$r][4] = 'admin';
         $this->rights[$r][5] = 'write';
+
+        // Own 2FA: lets users set up/change their own two-factor authentication without the
+        // broader Dolibarr right to edit their own user record ("user self creer")
+        $r++;
+        $this->rights[$r][0] = $this->numero + $r;
+        $this->rights[$r][1] = 'Manage own two-factor authentication';
+        $this->rights[$r][3] = 0;
+        $this->rights[$r][4] = 'self';
+        $this->rights[$r][5] = 'manage';
 
         // Menu entries - only visible when in Home > Setup area
         $this->menu = array();
