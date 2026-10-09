@@ -87,7 +87,9 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
-### Unreleased – Multi-Company encryption-key fix
+### v1.5.2 (Current Release) ✅ – Multi-Company encryption-key fix
+
+*Thanks to Frédéric Marie ([@fefed22](https://github.com/fefed22)) for finding and fixing this (PR #6).*
 
 - [x] **Fix 2FA login regression introduced in v1.5.0 on Multi-Company installations.** v1.5.0 introduced random encryption keys and AES-256-GCM, but provisioned `TOTP2FA_ENCRYPTION_KEY` on the entity that was active when the module was enabled. Dolibarr executes `beforeLoginAuthentication` before the user's target entity is fully selected, so `$conf->global` may expose a different entity's key at login. The user is found and the attempt is logged as `failed_2fa`, but the stored TOTP secret cannot be decrypted with that key.
 - [x] **Use a global key for new installations.** New keys are stored on entity `0`, making the same canonical key available regardless of the entity active during login.
@@ -96,7 +98,7 @@ chmod -R 755 totp2fa
 
 > **Upgrade note for v1.5.0/v1.5.1 Multi-Company users:** replace the module files and clear PHP OPcache if necessary. Do not delete `TOTP2FA_ENCRYPTION_KEY` rows, regenerate user secrets, or disable/re-enable 2FA. Existing entity-specific keys are intentionally required for backward-compatible decryption.
 
-### v1.5.1 (Current Release) ✅
+### v1.5.1 ✅
 - **Upgrade note:** disable and re-enable the module once after updating, so the new permission *Manage own two-factor authentication* is registered, then assign it to the users/groups that should be able to set up their own 2FA.
 - [x] **Hardening of direct web access** – new `.htaccess` files: no directory listing, documentation/SQL/log files (`*.md`, `*.sql`, …) are not downloadable, and `sql/`, `class/`, `lib/`, `langs/` are not served over HTTP (requires `AllowOverride` for `.htaccess`, the Apache default for Dolibarr vhosts).
 - [x] **New permission „Manage own two-factor authentication“** (`totp2fa → self → manage`) – Users (or groups, e.g. technician accounts) can set up and change their own 2FA without the broader Dolibarr right to edit their own user record (`user → self → creer`, which remains accepted for compatibility). Disable and re-enable the module once to register the permission, then assign it to users/groups.
@@ -252,6 +254,6 @@ mysqldump -u root -p dolibarr llx_totp2fa_user_settings llx_totp2fa_backup_codes
 
 -----
 
-**Current Version:** 1.5.1
+**Current Version:** 1.5.2
 **Status:** Stable
 **Compatibility:** Dolibarr 21.0+
