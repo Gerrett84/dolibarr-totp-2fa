@@ -87,13 +87,22 @@ chmod -R 755 totp2fa
 
 ## 📋 Roadmap
 
+### Unreleased – Multi-Company encryption-key fix
+
+- [x] **Fix 2FA login regression introduced in v1.5.0 on Multi-Company installations.** v1.5.0 introduced random encryption keys and AES-256-GCM, but provisioned `TOTP2FA_ENCRYPTION_KEY` on the entity that was active when the module was enabled. Dolibarr executes `beforeLoginAuthentication` before the user's target entity is fully selected, so `$conf->global` may expose a different entity's key at login. The user is found and the attempt is logged as `failed_2fa`, but the stored TOTP secret cannot be decrypted with that key.
+- [x] **Use a global key for new installations.** New keys are stored on entity `0`, making the same canonical key available regardless of the entity active during login.
+- [x] **Preserve existing v1.5.0/v1.5.1 installations.** All existing `TOTP2FA_ENCRYPTION_KEY` constants are loaded in deterministic entity order and retained as read keys. Existing TOTP secrets and backup-code HMACs can therefore still be verified even if they were created with different entity-specific keys. No database schema change, secret regeneration, QR-code rescan, or 2FA reset is required.
+- [x] **Use Dolibarr's sensitive-constant API correctly.** Dolibarr automatically encrypts constants whose names end in `_KEY` before writing them to `llx_const`. Values read directly from that table are now passed through `dolDecrypt()` before key derivation. `$dolibarr_main_totp2fa_encryption_key` from `conf.php` remains the highest-priority canonical key.
+
+> **Upgrade note for v1.5.0/v1.5.1 Multi-Company users:** replace the module files and clear PHP OPcache if necessary. Do not delete `TOTP2FA_ENCRYPTION_KEY` rows, regenerate user secrets, or disable/re-enable 2FA. Existing entity-specific keys are intentionally required for backward-compatible decryption.
+
 ### v1.5.1 (Current Release) ✅
 - **Upgrade note:** disable and re-enable the module once after updating, so the new permission *Manage own two-factor authentication* is registered, then assign it to the users/groups that should be able to set up their own 2FA.
 - [x] **Hardening of direct web access** – new `.htaccess` files: no directory listing, documentation/SQL/log files (`*.md`, `*.sql`, …) are not downloadable, and `sql/`, `class/`, `lib/`, `langs/` are not served over HTTP (requires `AllowOverride` for `.htaccess`, the Apache default for Dolibarr vhosts).
 - [x] **New permission „Manage own two-factor authentication“** (`totp2fa → self → manage`) – Users (or groups, e.g. technician accounts) can set up and change their own 2FA without the broader Dolibarr right to edit their own user record (`user → self → creer`, which remains accepted for compatibility). Disable and re-enable the module once to register the permission, then assign it to users/groups.
 
 ### v1.5.0 ✅ – security audit
-- [x] **Security: Random encryption key + AES-256-GCM** – `TOTP2FA_ENCRYPTION_KEY` is generated on activation (or via the setup page button); existing secrets are migrated automatically. The key can alternatively be set as `$dolibarr_main_totp2fa_encryption_key` in `conf.php`. **Back up the key together with the database.**
+- [x] **Security: Random encryption key + AES-256-GCM** – `TOTP2FA_ENCRYPTION_KEY` is generated on activation (or via the setup page button); existing secrets are migrated automatically. In v1.5.0 and v1.5.1 the generated constant was stored on the active entity; the Multi-Company compatibility fix above preserves those keys while provisioning future keys globally. The key can alternatively be set as `$dolibarr_main_totp2fa_encryption_key` in `conf.php`. **Back up every existing key together with the database.**
 - [x] **Security: Backup codes** – generated with `random_int()`, stored as keyed HMAC; regenerating invalidates the old codes; failed attempts are rate-limited.
 - [x] **Security: Trusted devices** – now bound to a random per-user cookie token (`totp2fa_did_<id>`, HttpOnly, SameSite=Lax); only its hash is stored. The device is trusted only after code *and* password were accepted. A wrong code on a trusted device is no longer accepted. Devices are revoked when 2FA is disabled. *Existing trusted devices must verify once more.*
 - [x] **Security: Client IP** – `X-Forwarded-For`/`X-Real-IP` are only honoured when the peer is a trusted proxy (default: loopback/private networks, override with the constant `TOTP2FA_TRUSTED_PROXIES`, comma separated IPs/CIDRs). IP blacklist now supports real CIDR ranges (IPv4/IPv6) and validates input.

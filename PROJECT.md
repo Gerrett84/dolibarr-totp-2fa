@@ -58,6 +58,20 @@ totp2fa/
 - **Backup Codes**: 10 single-use recovery codes
 - **Session Management**: Force re-authentication on 2FA changes
 
+### Encryption Key Management
+
+Since v1.5.0, TOTP secrets use AES-256-GCM with a random `TOTP2FA_ENCRYPTION_KEY`. Backup codes use the same derived key for their HMAC.
+
+Dolibarr treats constants ending in `_KEY` as sensitive: `dolibarr_set_const()` encrypts their values with `dolEncrypt()` before storing them in `llx_const`. Code that reads these constants directly from the database must therefore call `dolDecrypt()` before deriving the AES/HMAC key. The value already exposed through `$conf->global` is decrypted by Dolibarr and must not be decrypted a second time.
+
+The user settings table is keyed by the global Dolibarr user ID and has no entity column. Encryption must therefore not depend on the entity active during authentication. New installations store the module key on global entity `0`. For backward compatibility with v1.5.0 and v1.5.1, which stored keys on the active entity, all existing entity-specific constants remain valid read keys:
+
+1. `$dolibarr_main_totp2fa_encryption_key` from `conf.php`, when configured;
+2. decrypted database constants ordered by entity, with entity `0` first;
+3. the current `$conf->global->TOTP2FA_ENCRYPTION_KEY` value as a final compatible source.
+
+The first unique key is canonical for newly encrypted secrets and backup codes. Every unique key is tried when reading existing AES-256-GCM secrets or checking existing backup-code HMACs. Existing keys must not be deleted during upgrades.
+
 ## 📊 Database Schema
 
 ### llx_totp2fa_user_settings

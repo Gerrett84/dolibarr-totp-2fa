@@ -83,14 +83,19 @@ class User2FA extends CommonObject
     private $encryptionKey;
 
     /**
+     * @var string[] Binary keys accepted when decrypting v2 secrets or checking backup codes
+     */
+    private $decryptionKeys = array();
+
+    /**
      * @var string Key derived from DB credentials, used by the legacy secret format
      */
     private $legacyKey;
 
     /**
-     * @var string|null Raw TOTP2FA_ENCRYPTION_KEY constant, tried as alternative legacy key
+     * @var string[] Raw configured keys accepted for legacy secrets
      */
-    private $legacyKeyAlt;
+    private $legacyKeyAlternatives = array();
 
     /**
      * Constructor
@@ -104,33 +109,87 @@ class User2FA extends CommonObject
 
         global $conf;
 
-        // Legacy keys (CBC without MAC): key derived from DB credentials (default) and,
-        // for installs that set the constant manually before v2 secrets existed, the raw constant
+        // Legacy CBC secrets used either the DB-derived key or the raw configured key.
         $this->legacyKey = hash('sha256', $conf->db->name.$conf->db->user, true);
-        $this->legacyKeyAlt = !empty($conf->global->TOTP2FA_ENCRYPTION_KEY) ? (string) $conf->global->TOTP2FA_ENCRYPTION_KEY : null;
+        $configuredKeys = self::getConfiguredKeys($db);
+        $this->legacyKeyAlternatives = $configuredKeys;
 
-        $configured = self::getConfiguredKey();
-        $this->encryptionKey = ($configured !== '') ? hash('sha256', $configured, true) : null;
+        foreach ($configuredKeys as $configuredKey) {
+            $binaryKey = hash('sha256', $configuredKey, true);
+            if (!in_array($binaryKey, $this->decryptionKeys, true)) {
+                $this->decryptionKeys[] = $binaryKey;
+            }
+        }
+        $this->encryptionKey = isset($this->decryptionKeys[0]) ? $this->decryptionKeys[0] : null;
     }
 
     /**
-     * Get the configured encryption key string.
-     * Priority: $dolibarr_main_totp2fa_encryption_key in conf.php (kept outside the database),
-     * then the TOTP2FA_ENCRYPTION_KEY constant.
+     * Get all configured encryption keys.
      *
-     * @return string Key or '' if none configured
+     * Versions 1.5.0 and 1.5.1 stored the key on the active entity. During login Dolibarr has
+     * not selected the user's entity yet, so every entity key must remain available for reading.
+     * The first key is canonical for new data: conf.php first, then database constants ordered
+     * with the global entity first.
+     *
+     * @param DoliDB|null $db Database handler
+     * @return string[] Configured keys
      */
-    public static function getConfiguredKey()
+    public static function getConfiguredKeys($db = null)
     {
         global $conf;
 
+        $keys = array();
+        $addKey = function ($key) use (&$keys) {
+            $key = (string) $key;
+            if ($key !== '' && !in_array($key, $keys, true)) {
+                $keys[] = $key;
+            }
+        };
+
         if (!empty($GLOBALS['dolibarr_main_totp2fa_encryption_key'])) {
-            return (string) $GLOBALS['dolibarr_main_totp2fa_encryption_key'];
+            $addKey($GLOBALS['dolibarr_main_totp2fa_encryption_key']);
         }
+
+        if ($db !== null) {
+            require_once DOL_DOCUMENT_ROOT.'/core/lib/security.lib.php';
+
+            $sql = "SELECT value FROM ".MAIN_DB_PREFIX."const";
+            $sql .= " WHERE name = 'TOTP2FA_ENCRYPTION_KEY'";
+            $sql .= " AND value IS NOT NULL AND value <> ''";
+            $sql .= " ORDER BY entity ASC";
+            $resql = $db->query($sql);
+            if ($resql) {
+                while ($obj = $db->fetch_object($resql)) {
+                    $decryptedValue = dolDecrypt($obj->value);
+                    if (is_string($decryptedValue) && $decryptedValue !== '') {
+                        $addKey($decryptedValue);
+                    } else {
+                        dol_syslog(__METHOD__.": unable to decrypt an encryption key", LOG_WARNING);
+                    }
+                }
+                $db->free($resql);
+            } else {
+                dol_syslog(__METHOD__.": unable to load encryption keys: ".$db->lasterror(), LOG_WARNING);
+            }
+        }
+
         if (!empty($conf->global->TOTP2FA_ENCRYPTION_KEY)) {
-            return (string) $conf->global->TOTP2FA_ENCRYPTION_KEY;
+            $addKey($conf->global->TOTP2FA_ENCRYPTION_KEY);
         }
-        return '';
+
+        return $keys;
+    }
+
+    /**
+     * Get the canonical configured encryption key.
+     *
+     * @param DoliDB|null $db Database handler
+     * @return string Key or '' if none configured
+     */
+    public static function getConfiguredKey($db = null)
+    {
+        $keys = self::getConfiguredKeys($db);
+        return isset($keys[0]) ? $keys[0] : '';
     }
 
     /**
@@ -143,13 +202,13 @@ class User2FA extends CommonObject
     {
         global $conf;
 
-        if (self::getConfiguredKey() !== '') {
+        if (self::getConfiguredKey($db) !== '') {
             return true;
         }
 
         require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
         $key = bin2hex(random_bytes(32));
-        if (dolibarr_set_const($db, 'TOTP2FA_ENCRYPTION_KEY', $key, 'chaine', 0, 'TOTP2FA secret encryption key', $conf->entity) <= 0) {
+        if (dolibarr_set_const($db, 'TOTP2FA_ENCRYPTION_KEY', $key, 'chaine', 0, 'TOTP2FA secret encryption key', 0) <= 0) {
             return false;
         }
         $conf->global->TOTP2FA_ENCRYPTION_KEY = $key;
@@ -484,9 +543,12 @@ class User2FA extends CommonObject
             return false;
         }
 
-        $hashes = array($this->hashBackupCode($code));
+        $hashes = array();
+        foreach ($this->decryptionKeys as $key) {
+            $hashes[] = hash_hmac('sha256', $code, $key);
+        }
         $legacyHash = hash('sha256', $code);
-        if ($legacyHash !== $hashes[0]) {
+        if (!in_array($legacyHash, $hashes, true)) {
             $hashes[] = $legacyHash;
         }
 
@@ -563,14 +625,20 @@ class User2FA extends CommonObject
     private function decryptSecret($encrypted)
     {
         if (strpos($encrypted, 'v2:') === 0) {
-            if ($this->encryptionKey === null) {
+            if (empty($this->decryptionKeys)) {
                 return false;
             }
             $data = base64_decode(substr($encrypted, 3), true);
             if ($data === false || strlen($data) < 29) {
                 return false;
             }
-            return openssl_decrypt(substr($data, 28), 'aes-256-gcm', $this->encryptionKey, OPENSSL_RAW_DATA, substr($data, 0, 12), substr($data, 12, 16));
+            foreach ($this->decryptionKeys as $key) {
+                $plain = openssl_decrypt(substr($data, 28), 'aes-256-gcm', $key, OPENSSL_RAW_DATA, substr($data, 0, 12), substr($data, 12, 16));
+                if (is_string($plain) && preg_match('/^[A-Z2-7]{16,}$/', $plain)) {
+                    return $plain;
+                }
+            }
+            return false;
         }
 
         return $this->decryptLegacy($encrypted);
@@ -589,10 +657,7 @@ class User2FA extends CommonObject
         $iv = substr($data, 0, $ivLength);
         $ct = substr($data, $ivLength);
 
-        $keys = array($this->legacyKey);
-        if ($this->legacyKeyAlt !== null) {
-            array_unshift($keys, $this->legacyKeyAlt);
-        }
+        $keys = array_merge($this->legacyKeyAlternatives, array($this->legacyKey));
         foreach ($keys as $key) {
             $plain = openssl_decrypt($ct, 'aes-256-cbc', $key, 0, $iv);
             if (is_string($plain) && preg_match('/^[A-Z2-7]{16,}$/', $plain)) {
