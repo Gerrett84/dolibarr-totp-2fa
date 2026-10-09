@@ -208,7 +208,7 @@ print '</div>';
 print '<br>';
 
 // Encryption status
-$keyConfigured = (User2FA::getConfiguredKey() !== '');
+$keyConfigured = (User2FA::getConfiguredKey($db) !== '');
 $legacyCount = 0;
 $resql = $db->query("SELECT COUNT(*) as cnt FROM ".MAIN_DB_PREFIX."totp2fa_user_settings WHERE secret NOT LIKE 'v2:%'");
 if ($resql) {

@@ -193,14 +193,30 @@ The QR code is generated locally; the secret is never sent to an external servic
 
 ## 🔄 Upgrade
 
+### Multi-Company installations upgrading from v1.5.0 or v1.5.1
+
+These releases may have created a different `TOTP2FA_ENCRYPTION_KEY` for each entity. Dolibarr also encrypts these sensitive constant values in `llx_const`, so their stored representation is longer than the original 64-character random key.
+
+The compatibility fix:
+
+- decrypts each stored constant through Dolibarr's `dolDecrypt()` helper;
+- uses a global entity `0` key for new installations;
+- keeps every existing entity-specific key as a candidate for decrypting TOTP secrets and verifying backup-code HMACs.
+
+No database migration is required. After replacing the module files:
+
+1. Clear or restart PHP OPcache/PHP-FPM if the old PHP files may still be cached.
+2. Keep all existing `TOTP2FA_ENCRYPTION_KEY` rows in `llx_const`.
+3. Do not regenerate TOTP secrets or ask users to scan new QR codes.
+4. Test login with a newly generated TOTP code.
+
+Deactivating and reactivating the module is not required for this fix. Only do so when another release note explicitly requires registration of new permissions, hooks, or triggers.
+
 ### From Git
 
 ```bash
 cd /var/www/dolibarr/htdocs/custom/totp2fa
 git pull origin master
-
-# Deactivate and reactivate module in Dolibarr
-# Home → Setup → Modules → TOTP 2FA → Deactivate → Activate
 ```
 
 ### From ZIP
@@ -208,7 +224,7 @@ git pull origin master
 1. Backup current installation
 2. Download new version
 3. Extract and replace files
-4. Deactivate and reactivate module
+4. Follow any release-specific activation instructions
 
 ## 🗑️ Uninstallation
 
